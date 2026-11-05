@@ -1,27 +1,21 @@
 import jsQRModule from 'jsqr';
 import pngjs from 'pngjs';
-import qrcode from 'qrcode-generator';
+import { QUIET_ZONE_MODULES, frameToText, textToFrame, textToMatrix } from 'toss-qr';
+import type { QrConfig, QrMatrix } from 'toss-qr';
 
 const { PNG } = pngjs;
 // The types describe an ES default export, but at runtime this is the function.
 const jsQR = jsQRModule as unknown as typeof jsQRModule.default;
-
-export type ErrorCorrection = 'L' | 'M' | 'Q' | 'H';
-
-/** Byte-mode capacity of the largest QR symbol, version 40. */
-export const MAX_QR_BYTES: Record<ErrorCorrection, number> = { L: 2953, M: 2331, Q: 1663, H: 1273 };
 
 /** Callers refuse larger files before reading them. */
 export const MAX_PNG_BYTES = 32 * 1024 * 1024;
 /** Refuse larger images before decoding them: about 64 MiB of RGBA. */
 export const MAX_PNG_PIXELS = 4096 * 4096;
 
-const QUIET_ZONE_MODULES = 4;
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const IHDR = 0x49484452;
 
-export interface RenderOptions {
-  errorCorrection: ErrorCorrection;
+export interface RenderOptions extends QrConfig {
   /** Pixels per QR module. */
   scale: number;
 }
@@ -31,24 +25,22 @@ export type ScanResult =
   | { status: 'no-qr' }
   | { status: 'unreadable'; reason: string };
 
-/** Draws one frame as a byte-mode QR symbol, as many modules wide as it needs. */
-export function frameToPng(frame: Uint8Array, options: RenderOptions): Buffer {
-  const { errorCorrection, scale } = options;
-  const qr = qrcode(0, errorCorrection);
-  // Byte mode keeps the low 8 bits of each char, so latin1 carries raw bytes.
-  qr.addData(Buffer.from(frame).toString('latin1'), 'Byte');
-  qr.make();
-
-  const modules = qr.getModuleCount();
-  const size = (modules + 2 * QUIET_ZONE_MODULES) * scale;
-  const png = new PNG({ width: size, height: size });
+/** Draws a QR symbol with its quiet zone. */
+export function matrixToPng({ size, modules }: QrMatrix, scale: number): Buffer {
+  const width = (size + 2 * QUIET_ZONE_MODULES) * scale;
+  const png = new PNG({ width, height: width });
   png.data.fill(0xff);
-  for (let row = 0; row < modules; row++) {
-    for (let col = 0; col < modules; col++) {
-      if (qr.isDark(row, col)) paintModule(png, row, col, scale);
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      if (modules[row * size + col]) paintModule(png, row, col, scale);
     }
   }
   return PNG.sync.write(png, { colorType: 0 });
+}
+
+/** Draws one frame as a QR symbol of the given version. */
+export function frameToPng(frame: Uint8Array, options: RenderOptions): Buffer {
+  return matrixToPng(textToMatrix(frameToText(frame), options), options.scale);
 }
 
 function paintModule(png: InstanceType<typeof PNG>, row: number, col: number, scale: number): void {
@@ -100,5 +92,8 @@ export function scanPng(bytes: Uint8Array): ScanResult {
 
   const pixels = new Uint8ClampedArray(image.data.buffer, image.data.byteOffset, image.data.length);
   const code = jsQR(pixels, image.width, image.height);
-  return code ? { status: 'frame', frame: Uint8Array.from(code.binaryData) } : { status: 'no-qr' };
+  if (!code) return { status: 'no-qr' };
+
+  const read = textToFrame(code.data);
+  return read.ok ? { status: 'frame', frame: read.frame } : { status: 'unreadable', reason: read.reason };
 }

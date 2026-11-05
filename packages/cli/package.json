@@ -11,15 +11,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "npm run build -w toss-core && tsc -p tsconfig.build.json",
-    "typecheck": "npm run build -w toss-core && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
-    "test": "npm run build -w toss-core && vitest run"
+    "build": "npm run build -w toss-core && npm run build -w toss-qr && tsc -p tsconfig.build.json",
+    "typecheck": "npm run build -w toss-core && npm run build -w toss-qr && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
+    "test": "npm run build -w toss-core && npm run build -w toss-qr && vitest run"
   },
   "dependencies": {
     "jsqr": "^1.4.0",
     "pngjs": "^7.0.0",
-    "qrcode-generator": "^2.0.4",
-    "toss-core": "*"
+    "toss-core": "*",
+    "toss-qr": "*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

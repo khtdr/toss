@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Encoder } from 'toss-core';
+import { smallestVersion } from 'toss-qr';
 import { MAX_PNG_BYTES, frameToPng, scanPng } from '../src/qr-png.js';
 import { decodeImages, encodeFile, listImages, writePayload } from '../src/transfer.js';
 import type { EncodeOptions } from '../src/transfer.js';
@@ -21,6 +22,7 @@ afterEach(async () => {
 
 const defaults: EncodeOptions = {
   maxFrameBytes: 200,
+  version: smallestVersion(200, 'M'),
   errorCorrection: 'M',
   scale: 3,
   mime: 'application/octet-stream',

@@ -77,7 +77,7 @@ describe('toss encode and decode', () => {
 
   it('exits 1 and writes nothing when the payload fails its hash', async () => {
     await mkdir(frames);
-    const render = { errorCorrection: 'M', scale: 3 } as const;
+    const render = { version: 10, errorCorrection: 'M', scale: 3 } as const;
     const encoder = new Encoder(payload, {
       maxFrameBytes: 200,
       mime: 'application/octet-stream',
@@ -134,8 +134,29 @@ describe('toss encode and decode', () => {
   });
 
   it('accepts the largest frame for an EC level', async () => {
-    const big = await run('encode', input, '-o', frames, '--ec', 'H', '--frame-bytes', '1273');
+    const big = await run('encode', input, '-o', frames, '--ec', 'H', '--frame-bytes', '1234');
     expect(big.code).toBe(0);
+    expect(big.out).toContain('QR version 40, level H');
+  });
+
+  it('picks the smallest QR version that holds the frame size', async () => {
+    const { out } = await run('encode', input, '-o', frames, '--scale', '3');
+    expect(out).toContain('QR version 22, level M, frames up to 700 bytes');
+  });
+
+  it('sizes frames to fill a chosen QR version', async () => {
+    const { code, out } = await run('encode', input, '-o', frames, '--qr-version', '10', '--ec', 'Q');
+    expect(code).toBe(0);
+    expect(out).toContain('QR version 10, level Q, frames up to 146 bytes');
+    const decoded = await run('decode', frames, '-o', output);
+    expect(decoded.code).toBe(0);
+    expect(await readFile(output)).toEqual(Buffer.from(payload));
+  });
+
+  it('reports a QR version too small for the header', async () => {
+    const { code, err } = await run('encode', input, '-o', frames, '--qr-version', '1', '--ec', 'H');
+    expect(code).toBe(1);
+    expect(err).toContain('maxFrameBytes');
   });
 });
 
@@ -157,7 +178,10 @@ describe('usage', () => {
     ['a prototype key as EC level', ['encode', 'a', '-o', 'b', '--ec', 'toString']],
     ['a non-numeric size', ['encode', 'a', '-o', 'b', '--frame-bytes', '12x']],
     ['a frame below the minimum', ['encode', 'a', '-o', 'b', '--frame-bytes', '4']],
-    ['a frame beyond QR capacity', ['encode', 'a', '-o', 'b', '--ec', 'H', '--frame-bytes', '1274']],
+    ['a frame beyond QR capacity', ['encode', 'a', '-o', 'b', '--ec', 'H', '--frame-bytes', '1235']],
+    ['a QR version of zero', ['encode', 'a', '-o', 'b', '--qr-version', '0']],
+    ['a QR version past 40', ['encode', 'a', '-o', 'b', '--qr-version', '41']],
+    ['both frame size flags', ['encode', 'a', '-o', 'b', '--frame-bytes', '200', '--qr-version', '9']],
     ['zero loops', ['encode', 'a', '-o', 'b', '--loops', '0']],
     ['zero scale', ['encode', 'a', '-o', 'b', '--scale', '0']],
   ])('exits 2 for %s', async (_, argv) => {

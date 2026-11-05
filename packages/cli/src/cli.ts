@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { MIN_FRAME_BYTES } from 'toss-core';
-import { MAX_QR_BYTES } from './qr-png.js';
-import type { ErrorCorrection } from './qr-png.js';
+import { MAX_VERSION, MIN_VERSION, isErrorCorrection, maxFrameBytes, smallestVersion } from 'toss-qr';
+import type { ErrorCorrection } from 'toss-qr';
 import { decodeImages, encodeFile, listImages, writePayload } from './transfer.js';
 
 export const USAGE = `Usage:
@@ -11,6 +11,7 @@ export const USAGE = `Usage:
 
 Encode options:
   --frame-bytes <n>   Largest frame, in bytes (default 700)
+  --qr-version <n>    Fill this QR version (1-40), instead of --frame-bytes
   --ec <L|M|Q|H>      QR error correction (default M)
   --scale <n>         Pixels per QR module (default 4)
   --loops <n>         Full cycles to write (default 1)
@@ -24,7 +25,8 @@ Decode options:
 
 const OPTIONS = {
   output: { type: 'string', short: 'o' },
-  'frame-bytes': { type: 'string', default: '700' },
+  'frame-bytes': { type: 'string' },
+  'qr-version': { type: 'string' },
   ec: { type: 'string', default: 'M' },
   scale: { type: 'string', default: '4' },
   loops: { type: 'string', default: '1' },
@@ -49,8 +51,30 @@ function positiveInt(name: string, value: string): number {
 }
 
 function errorCorrection(value: string): ErrorCorrection {
-  if (Object.hasOwn(MAX_QR_BYTES, value)) return value as ErrorCorrection;
+  if (isErrorCorrection(value)) return value;
   throw new UsageError('--ec must be one of L, M, Q, H');
+}
+
+/** Every frame in a transfer uses one version, so the symbol never changes size. */
+function symbolSize(values: Values, ec: ErrorCorrection) {
+  const frameBytes = values['frame-bytes'];
+  const qrVersion = values['qr-version'];
+
+  if (qrVersion !== undefined) {
+    if (frameBytes !== undefined) throw new UsageError('use --frame-bytes or --qr-version, not both');
+    const version = positiveInt('qr-version', qrVersion);
+    if (version > MAX_VERSION) {
+      throw new UsageError(`--qr-version must be from ${MIN_VERSION} to ${MAX_VERSION}`);
+    }
+    return { version, maxFrameBytes: maxFrameBytes({ version, errorCorrection: ec }) };
+  }
+
+  const size = positiveInt('frame-bytes', frameBytes ?? '700');
+  const largest = maxFrameBytes({ version: MAX_VERSION, errorCorrection: ec });
+  if (size < MIN_FRAME_BYTES || size > largest) {
+    throw new UsageError(`--frame-bytes must be from ${MIN_FRAME_BYTES} to ${largest} at --ec ${ec}`);
+  }
+  return { version: smallestVersion(size, ec), maxFrameBytes: size };
 }
 
 function hex(sessionId: number): string {
@@ -69,15 +93,10 @@ async function encode(paths: string[], values: Values, io: Output): Promise<numb
   if (values.output === undefined) throw new UsageError('encode needs -o <dir>');
 
   const ec = errorCorrection(values.ec);
-  const maxFrameBytes = positiveInt('frame-bytes', values['frame-bytes']);
-  if (maxFrameBytes < MIN_FRAME_BYTES || maxFrameBytes > MAX_QR_BYTES[ec]) {
-    throw new UsageError(
-      `--frame-bytes must be from ${MIN_FRAME_BYTES} to ${MAX_QR_BYTES[ec]} at --ec ${ec}`,
-    );
-  }
+  const size = symbolSize(values, ec);
 
   const summary = await encodeFile(input, values.output, {
-    maxFrameBytes,
+    ...size,
     errorCorrection: ec,
     scale: positiveInt('scale', values.scale),
     loops: positiveInt('loops', values.loops),
@@ -89,6 +108,7 @@ async function encode(paths: string[], values: Values, io: Output): Promise<numb
     `session ${hex(summary.sessionId)}: ${summary.frameCount} data frames, ` +
       `${summary.cycleLength} per cycle, ${summary.compressed ? 'compressed' : 'uncompressed'}`,
   );
+  io.out(`QR version ${size.version}, level ${ec}, frames up to ${size.maxFrameBytes} bytes`);
   io.out(`wrote ${summary.images} images to ${values.output}`);
   return 0;
 }

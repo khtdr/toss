@@ -48,9 +48,11 @@ dec.push(frame)          // -> { progress, done?, payload?, meta? }
 
 Pure QR logic, with no platform I/O.
 
-- `frame bytes <-> QR string` (base45 for alphanumeric mode, since scanners return strings)
-- `QR string -> matrix` for drawing
-- Chooses `maxFrameBytes` for a given QR version and error-correction level
+- `frameToText` / `textToFrame`: frame bytes <-> QR string (base45 for alphanumeric mode, since scanners return strings)
+- `textToMatrix`: QR string -> matrix for drawing, at a fixed version so the symbol never changes size
+- `maxFrameBytes` / `smallestVersion`: capacity for a given QR version and error-correction level
+
+See `docs/qr.md`.
 
 ### 3. `toss-react-native`: platform bindings
 
@@ -85,7 +87,7 @@ node packages/cli/dist/bin.js encode theme.json -o frames/ --mime application/js
 node packages/cli/dist/bin.js decode frames/ -o theme-copy.json
 ```
 
-Each PNG holds one frame in a byte-mode QR symbol, with no text codec. `--loops` writes more than one cycle, so you can delete images to simulate loss. The QR code lives in `packages/cli/src/qr-png.ts` until `toss-qr` exists.
+Each PNG holds one frame, drawn by `toss-qr`. `--frame-bytes` picks the smallest QR version that fits, and `--qr-version` fills a chosen version instead. `--loops` writes more than one cycle, so you can delete images to simulate loss. Scanning PNGs with `jsqr` stays in the CLI, because on a device the camera does that job.
 
 ## Package layout (monorepo)
 
@@ -102,6 +104,7 @@ toss/
     expo-app/          minimal app: send + receive
   docs/
     protocol.md        frame format spec
+    qr.md              QR carrier spec
 ```
 
 ## Known risks

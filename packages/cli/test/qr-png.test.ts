@@ -1,11 +1,12 @@
 import pngjs from 'pngjs';
 import { describe, expect, it } from 'vitest';
-import { MAX_QR_BYTES, frameToPng, scanPng } from '../src/qr-png.js';
-import type { ErrorCorrection } from '../src/qr-png.js';
+import { maxFrameBytes, smallestVersion, textToMatrix } from 'toss-qr';
+import type { ErrorCorrection } from 'toss-qr';
+import { frameToPng, matrixToPng, scanPng } from '../src/qr-png.js';
 import { idat, ihdr, noise, rawPng } from './helpers.js';
 
 const { PNG } = pngjs;
-const options = { errorCorrection: 'M', scale: 4 } as const;
+const options = { version: 22, errorCorrection: 'M', scale: 4 } as const;
 
 function blank(size: number): Buffer {
   const png = new PNG({ width: size, height: size });
@@ -36,23 +37,29 @@ describe('frame <-> PNG', () => {
     expect(roundTrip(frame)).toEqual(frame);
   });
 
-  it.each(Object.entries(MAX_QR_BYTES))('fills a version 40 symbol at EC %s', (level, capacity) => {
-    const frame = noise(capacity, capacity);
-    expect(roundTrip(frame, { errorCorrection: level as ErrorCorrection, scale: 3 })).toEqual(frame);
+  it.each(['L', 'M', 'Q', 'H'] as ErrorCorrection[])('fills a version 40 symbol at EC %s', (level) => {
+    const render = { version: 40, errorCorrection: level, scale: 3 };
+    const frame = noise(maxFrameBytes(render));
+    expect(roundTrip(frame, render)).toEqual(frame);
   });
 
-  it('refuses a frame beyond the capacity of the largest symbol', () => {
-    expect(() => frameToPng(noise(MAX_QR_BYTES.M + 1), options)).toThrow();
+  it('refuses a frame beyond the capacity of its symbol', () => {
+    expect(() => frameToPng(noise(maxFrameBytes(options) + 1), options)).toThrow(RangeError);
+  });
+
+  it('draws short and long frames at the same size', () => {
+    const width = (frame: Uint8Array) => PNG.sync.read(frameToPng(frame, options)).width;
+    expect(width(noise(14))).toBe(width(noise(maxFrameBytes(options))));
   });
 
   it.each([1, 2, 8])('scans at %i pixels per module', (scale) => {
     const frame = noise(120);
-    expect(roundTrip(frame, { errorCorrection: 'M', scale })).toEqual(frame);
+    expect(roundTrip(frame, { ...options, scale })).toEqual(frame);
   });
 
   it('leaves a quiet zone of four modules on every side', () => {
     const scale = 3;
-    const png = PNG.sync.read(frameToPng(noise(40), { errorCorrection: 'M', scale }));
+    const png = PNG.sync.read(frameToPng(noise(40), { ...options, scale }));
     const margin = 4 * scale;
     let darkInMargin = 0;
     let dark = 0;
@@ -70,7 +77,9 @@ describe('frame <-> PNG', () => {
 
   it('survives damage within the error correction budget', () => {
     const frame = noise(300);
-    const png = PNG.sync.read(frameToPng(frame, { errorCorrection: 'H', scale: 4 }));
+    const png = PNG.sync.read(
+      frameToPng(frame, { version: smallestVersion(300, 'H'), errorCorrection: 'H', scale: 4 }),
+    );
     // Scribble on a band through the middle, clear of the finder patterns.
     const top = Math.floor(png.height / 2);
     for (let y = top; y < top + 8; y++) {
@@ -84,6 +93,11 @@ describe('frame <-> PNG', () => {
 describe('untrusted PNGs', () => {
   it('reports an image with no QR code', () => {
     expect(scanPng(blank(64))).toEqual({ status: 'no-qr' });
+  });
+
+  it('reports a QR code from something else', () => {
+    const matrix = textToMatrix('HTTP://EXAMPLE.COM', { version: 2, errorCorrection: 'M' });
+    expect(scanPng(matrixToPng(matrix, 4))).toEqual({ status: 'unreadable', reason: 'not-toss' });
   });
 
   it.each([
