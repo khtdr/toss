@@ -74,7 +74,18 @@ Carriers (qr, audio, ...) times frameworks (react-native, web, ...) gives one ad
 
 - `toss-audio`: modem-style data over sound (ggwave is worth studying)
 - `toss-web`: webcam + canvas
-- `toss-cli`: encode a file to PNG frames and decode them back; doubles as an end-to-end test harness
+
+## `toss-cli`: end-to-end harness
+
+Encodes a file to QR PNG frames and decodes them back, so the whole path runs without a device. It isn't a layer: nothing depends on it.
+
+```sh
+npm run build
+node packages/cli/dist/bin.js encode theme.json -o frames/ --mime application/json --kind theme
+node packages/cli/dist/bin.js decode frames/ -o theme-copy.json
+```
+
+Each PNG holds one frame in a byte-mode QR symbol, with no text codec. `--loops` writes more than one cycle, so you can delete images to simulate loss. The QR code lives in `packages/cli/src/qr-png.ts` until `toss-qr` exists.
 
 ## Package layout (monorepo)
 
@@ -83,6 +94,7 @@ toss/
   README.md
   packages/
     core/              toss-core
+    cli/               toss-cli
     qr/                toss-qr
     react-native/      toss-react-native
     expo/              expo-toss
@@ -110,8 +122,8 @@ toss/
 ## Roadmap
 
 1. `toss-core`: frame format, encoder/decoder, tests with simulated loss/duplication/reordering
-2. `toss-cli`: round-trip a file through PNG frames in CI
-3. `toss-qr`: base45 codec, capacity tuning
+2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
+3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput
 5. `toss-react-native`: hooks, then default components
 6. `expo-toss`: config plugin + packaging

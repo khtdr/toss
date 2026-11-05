@@ -22,6 +22,7 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 - **Compression:** on by default, kept only if smaller, `compress: false` to opt out. Raw DEFLATE via `fflate`, a direct dependency of `toss-core`.
 - **Text codec:** owned by the carrier layer. Core handles raw bytes only.
 - **Workspaces:** npm.
+- **CLI:** `toss-cli` draws real QR PNGs in byte mode, using `qrcode-generator`, `jsqr`, and `pngjs`. This doesn't settle the libraries or text codec for `toss-qr`, which replaces the CLI's QR code when it's built.
 - Package names (checked on npm, available): `toss-core`, `toss-qr`, `toss-react-native`, `expo-toss`. Bare `toss` is taken.
 
 ## Open (don't silently decide)
@@ -36,5 +37,5 @@ Protocol + tests -> CLI round-trip -> QR carrier -> **device spike for real came
 
 - Monorepo, one package per layer, under `packages/`.
 - TypeScript. Tests must be able to simulate loss, duplicate frames, reordering, and joining mid-loop without any device.
-- Treat received data as untrusted: enforce size and frame-count caps before allocating.
+- Treat received data as untrusted: enforce size and frame-count caps before allocating. This includes images: `pngjs` sizes its buffers from the last `IHDR`, so check every chunk first.
 - No Co-Authored-By attribution in commit messages.
