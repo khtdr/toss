@@ -163,13 +163,16 @@ toss/
 
 ## Roadmap
 
+The order from here: make the library useful to app developers, with File Toss as the proof of concept, and write the docs and blog posts. Then expand File Toss into a cross-platform tool, and if it works well enough, put it in the app stores.
+
 1. `toss-core`: frame format, encoder/decoder, tests with simulated loss/duplication/reordering
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput. Done, see `docs/qr.md`, section 4
 5. `toss-react-native`: hooks, then default components. Both run on two phones
-6. `expo-toss`: config plugin + packaging. Built and tested, and File Toss uses it. Not yet run on a phone
-7. Wire into a real app: File Toss, in `examples/file-toss`, replacing the spike. It's both a utility and a proof of concept. Built and tested, not yet run on a phone or published
+6. `expo-toss`: config plugin + packaging. Built and tested, and File Toss uses it on the phones
+7. Wire into a real app: File Toss, in `examples/file-toss`, replacing the spike. It's both a utility and a proof of concept. Runs on both test phones, not yet published
+8. Desktop builds of File Toss for Mac, Linux and Windows, so files can move between phones and computers. Deno Desktop bundles the TypeScript into a standalone executable, which would likely use `toss-web`. Not started
 
 ## Naming
 

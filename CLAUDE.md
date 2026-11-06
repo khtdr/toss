@@ -4,7 +4,8 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Project intent
 
-- Personal library, built for the owner's own apps (Expo / React Native). An existing library may already do this; that is irrelevant. Don't suggest "just use X" unless asked.
+- Built for the owner's own apps (Expo / React Native), and now meant for other app developers too. An existing library may already do this; that is irrelevant. Don't suggest "just use X" unless asked.
+- **Scope, in order:** first make the library useful to other app developers, with File Toss as its proof of concept, and write the docs and blog posts. Then expand File Toss into a cross-platform tool. If that works well enough, put it in the app stores.
 - Priority is **modularity and testability**. The design was done top-down ("final form") and is being built bottom-up.
 
 ## Decisions made

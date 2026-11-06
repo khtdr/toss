@@ -40,7 +40,8 @@
     "lint": "expo lint",
     "test": "../../node_modules/.bin/vitest run",
     "icons": "python3 scripts/make-icons.py",
-    "apk": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease"
+    "apk": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease",
+    "apk:small": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -Pexpo.useLegacyPackaging=true -Pandroid.enableShrinkResourcesInReleaseBuilds=true && cp app/build/outputs/apk/release/app-release.apk ../file-toss.apk"
   },
   "private": true
 }
