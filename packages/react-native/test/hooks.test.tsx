@@ -16,8 +16,23 @@ const screen = vi.hoisted(() => ({
   setBrightnessAsync: vi.fn(async (_value: number) => {}),
   restoreSystemBrightnessAsync: vi.fn(async () => {}),
   requestPermission: vi.fn(),
+  app: {
+    currentState: 'active',
+    listeners: new Set<(state: string) => void>(),
+  },
 }));
 
+vi.mock('react-native', () => ({
+  AppState: {
+    get currentState() {
+      return screen.app.currentState;
+    },
+    addEventListener: (_type: string, listener: (state: string) => void) => {
+      screen.app.listeners.add(listener);
+      return { remove: () => screen.app.listeners.delete(listener) };
+    },
+  },
+}));
 vi.mock('expo-keep-awake', () => ({
   activateKeepAwakeAsync: screen.activateKeepAwakeAsync,
   deactivateKeepAwake: screen.deactivateKeepAwake,
@@ -40,6 +55,8 @@ beforeEach(() => {
   vi.stubGlobal('requestAnimationFrame', (callback: () => void) => setTimeout(callback, 16));
   vi.stubGlobal('cancelAnimationFrame', (handle: ReturnType<typeof setTimeout>) => clearTimeout(handle));
   vi.clearAllMocks();
+  screen.app.currentState = 'active';
+  screen.app.listeners.clear();
 });
 
 afterEach(() => {
@@ -147,6 +164,38 @@ describe('useTossSend', () => {
     expect(seen.current.stats.loops).toBeGreaterThan(0);
   });
 
+  it('stops the clock while the app is in the background', () => {
+    const { seen } = renderSend(noise(3000));
+    const source = seen.current.symbol!;
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    const held = source.getSymbol();
+    act(() => {
+      for (const listener of screen.app.listeners) listener('background');
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(source.getSymbol()).toBe(held);
+
+    act(() => {
+      for (const listener of screen.app.listeners) listener('active');
+      vi.advanceTimersByTime(1000);
+    });
+    expect(source.getSymbol()).not.toBe(held);
+    expect(seen.current.stats.skippedSlots).toBeLessThan(5);
+  });
+
+  it('starts paused if the app is already in the background', () => {
+    screen.app.currentState = 'background';
+    const { seen } = renderSend(noise(3000));
+    const first = seen.current.symbol!.getSymbol();
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(seen.current.symbol!.getSymbol()).toBe(first);
+  });
+
   it('stops on cancel and can restart', () => {
     const { seen } = renderSend(noise(3000));
     const first = seen.current.symbol!;
@@ -191,6 +240,7 @@ describe('useTossSend', () => {
     const { unmount } = renderSend(noise(3000));
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+    expect(screen.app.listeners.size).toBe(0);
     expect(screen.deactivateKeepAwake).toHaveBeenCalledTimes(1);
     expect(screen.restoreSystemBrightnessAsync).toHaveBeenCalledTimes(1);
   });

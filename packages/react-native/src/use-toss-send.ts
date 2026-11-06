@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { DEFAULT_SEND_SETTINGS, SendSession } from './send-session.js';
 import type { SendSettings, SendStats } from './send-session.js';
 import { useFullBrightness, useScreenAwake } from './screen.js';
@@ -78,6 +79,14 @@ export function useTossSend(data: Uint8Array | null, options: TossSendOptions): 
     }
     setRun({ status: 'sending', session });
 
+    // The state can be unknown at startup, so only a known background state pauses.
+    const followApp = (state: string | null | undefined) => {
+      if (state === 'background' || state === 'inactive') session.pause(performance.now());
+      else session.resume(performance.now());
+    };
+    followApp(AppState.currentState);
+    const appState = AppState.addEventListener('change', followApp);
+
     let prepareTimer: ReturnType<typeof setTimeout> | undefined;
     let frame = 0;
     const tick = () => {
@@ -91,6 +100,7 @@ export function useTossSend(data: Uint8Array | null, options: TossSendOptions): 
     const statsTimer = setInterval(() => setStats(session.stats(performance.now())), STATS_INTERVAL_MS);
 
     return () => {
+      appState.remove();
       cancelAnimationFrame(frame);
       clearTimeout(prepareTimer);
       clearInterval(statsTimer);

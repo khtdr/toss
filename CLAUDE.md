@@ -36,7 +36,6 @@ Carry these into them:
 
 - Show live progress and ask people to hold steady, using `stalledMs`. Most of a long transfer's time goes on the last few blocks, so a stall near the end is normal.
 - Show a brief "preparing" state. Starting 1 MB blocks the screen for 0.7-0.9 s.
-- `shownFps` and `skippedSlots` count time in the background, so an interrupted run looks slower than it was. Fix that before relying on them.
 - `examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
 
 After that layer comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.

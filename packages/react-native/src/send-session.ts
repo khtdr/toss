@@ -32,9 +32,9 @@ export interface SendSessionOptions extends SendSettings {
 export interface SendStats {
   /** Complete passes through the cycle. There's no back-channel, so this is all a sender can know. */
   loops: number;
-  /** Symbols shown per second, since the start. */
+  /** Symbols shown per second, leaving out paused time. */
   shownFps: number;
-  /** Time slots that passed with no new symbol, because the device fell behind. */
+  /** Time slots that passed with no new symbol, because the device fell behind while running. */
   skippedSlots: number;
 }
 
@@ -54,6 +54,7 @@ export class SendSession implements SymbolSource {
   private current: SymbolFrame;
   private next: SymbolFrame | undefined;
   private startedAt: number | undefined;
+  private pausedAt: number | undefined;
   private lastStep = 0;
   private shown = 1;
   private skipped = 0;
@@ -86,6 +87,7 @@ export class SendSession implements SymbolSource {
 
   /** Moves to the next symbol if its time has come. Returns true if it did. */
   advance(now: number): boolean {
+    if (this.pausedAt !== undefined) return false;
     if (this.startedAt === undefined) {
       this.startedAt = now;
       return false;
@@ -108,8 +110,21 @@ export class SendSession implements SymbolSource {
     this.next ??= this.draw(this.position + 1);
   }
 
+  /** Holds the sequence while nobody can see it. Paused time doesn't count as falling behind. */
+  pause(now: number): void {
+    this.pausedAt ??= now;
+  }
+
+  /** Carries on from the same symbol. */
+  resume(now: number): void {
+    if (this.pausedAt === undefined) return;
+    if (this.startedAt !== undefined) this.startedAt += now - this.pausedAt;
+    this.pausedAt = undefined;
+  }
+
   stats(now: number): SendStats {
-    const seconds = this.startedAt === undefined ? 0 : (now - this.startedAt) / 1000;
+    const end = this.pausedAt ?? now;
+    const seconds = this.startedAt === undefined ? 0 : (end - this.startedAt) / 1000;
     return {
       loops: Math.floor(this.position / this.encoder.cycleLength),
       shownFps: seconds > 0 ? this.shown / seconds : 0,

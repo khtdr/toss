@@ -87,6 +87,52 @@ describe('SendSession', () => {
     expect(stats.skippedSlots).toBe(0);
   });
 
+  it('holds its symbol while paused, and counts none of that time', () => {
+    const session = new SendSession(noise(3000), options);
+    session.advance(0);
+    session.advance(100);
+    session.pause(150);
+    const held = session.getSymbol();
+
+    expect(session.advance(60_000)).toBe(false);
+    expect(session.getSymbol()).toBe(held);
+    session.resume(60_150);
+
+    expect(session.advance(60_199)).toBe(false);
+    expect(session.advance(60_200)).toBe(true);
+    const stats = session.stats(60_200);
+    expect(stats.skippedSlots).toBe(0);
+    expect(stats.shownFps).toBeCloseTo(15, 0);
+  });
+
+  it('freezes its rate while paused', () => {
+    const session = new SendSession(noise(3000), options);
+    session.advance(0);
+    session.advance(1000);
+    session.pause(1000);
+    expect(session.stats(50_000).shownFps).toBe(session.stats(1000).shownFps);
+  });
+
+  it('still counts falling behind while running', () => {
+    const session = new SendSession(noise(3000), options);
+    session.advance(0);
+    session.pause(100);
+    session.resume(5000);
+    // 1.1 s of running time is 11 slots, and only the last got a symbol.
+    session.advance(6000);
+    expect(session.stats(6000).skippedSlots).toBe(10);
+  });
+
+  it('can pause before the first tick, and ignores a stray resume', () => {
+    const session = new SendSession(noise(3000), options);
+    session.resume(10);
+    session.pause(20);
+    expect(session.advance(30)).toBe(false);
+    session.resume(40);
+    expect(session.advance(50)).toBe(false);
+    expect(session.advance(150)).toBe(true);
+  });
+
   it('reports no rate before the first tick', () => {
     expect(new SendSession(noise(10), options).stats(5000).shownFps).toBe(0);
   });

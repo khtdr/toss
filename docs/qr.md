@@ -88,7 +88,7 @@ Measured with the `toss-react-native` hooks at v30-M, 10 fps and mask 0, with th
 | 50 KB noise, 3 runs | 39 | 8.3-12.0 s | 4.2-6.0 KB/s |
 | 1 MB noise | 798 | 4 min 15 s | 4.0 KB/s |
 
-- **Sender.** The S21 held 10 fps with no new skipped slots while watched for a few minutes. `shownFps` and `skippedSlots` count time in the background, so an interrupted run looks slower than it was.
+- **Sender.** The S21 held 10 fps with no new skipped slots while watched for a few minutes. Its lifetime figures read 8.4 fps because USB reconnects kept hiding the app. The session now pauses in the background, so these figures leave that time out.
 - **Startup.** 1 MB of noise took 0.7-0.9 s before the first symbol. 1 MB of JSON hasn't been run.
 - **Memory.** Over a 20-minute 1 MB run on the S21, with 11 minutes uninterrupted, total memory stayed at 148-155 MB, and Graphics levelled off at 58.6 MB. There was no sign of a leak from making a Skia path per symbol.
 - **Compression.** JSON needed 5-6 times fewer frames than noise. The test JSON is synthetic and repetitive, so real data may compress less.
