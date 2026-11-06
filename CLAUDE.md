@@ -32,15 +32,18 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike in `examples/expo-app`. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4.
 
-`TossSender` and `TossReceiver` are built on those hooks, with a **Components** screen in the spike. **They haven't run on a phone yet, so that's next.** Check that **Preparing** really paints before a 1 MB start blocks the JS thread. The hook defers building the session to a later task for that reason, but tests can't show what reaches the screen.
+`TossSender` and `TossReceiver` are built on those hooks, with a **Components** screen in the spike. The owner has run them on the phones and they work. **Preparing** shows briefly before a 1 MB start, so deferring the session build to a later task does get it on screen before the JS thread blocks. Keep that deferral: tests can't show what reaches the screen.
+
+`expo-toss` is built, and the spike now imports from it and uses its config plugin. Its tests run Expo's real prebuild pipeline. **It hasn't run on a phone yet.** Check that full brightness still works without `WRITE_SETTINGS`, and that the release APK doesn't declare it. `tools:node="remove"` only takes effect in Gradle's manifest merge, which hasn't been run.
 
 `examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
 
-After that layer comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
+Next comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
 
 - **Fountain code:** deferred by the owner until they're sending real files. Don't build it or raise it before then. For reference, 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes. When it comes back, first benchmark receiver CPU on Hermes.
 - **Privacy:** there's no encryption, so the app should say that anyone who can see the screen can read the file.
 - **Received files:** they're untrusted. Clean up filenames, enforce size caps, and hand files to the system's save or share sheet instead of opening them.
+- **Permissions:** Expo's template still declares `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and the old storage permissions. `expo-toss` leaves those alone, since they're an app's choice. The app should decide on each one, as a transfer app with no `INTERNET` permission would back up the privacy notice.
 - **Publishing:** it needs a real signing key, a privacy policy and a camera permission message. Check Google Play's current testing rules for new personal accounts early.
 
 Not tested yet, in rough order of value:

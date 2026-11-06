@@ -12,9 +12,9 @@
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
+    "expo-toss": "file:../../packages/expo",
     "toss-core": "file:../../packages/core",
-    "toss-qr": "file:../../packages/qr",
-    "toss-react-native": "file:../../packages/react-native"
+    "toss-qr": "file:../../packages/qr"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",

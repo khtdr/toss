@@ -20,12 +20,7 @@
       "android"
     ],
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "recordAudioAndroid": false
-        }
-      ]
+      "expo-toss"
     ]
   }
 }

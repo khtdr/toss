@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TossSymbol, useTossSend } from 'toss-react-native';
+import { TossSymbol, useTossSend } from 'expo-toss';
 import type { ErrorCorrection } from 'toss-qr';
 import { sendOptions, testPayload } from './run';
 import type { PayloadType, RunConfig } from './run';

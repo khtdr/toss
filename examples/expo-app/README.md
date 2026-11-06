@@ -1,6 +1,6 @@
 # toss spike
 
-A throwaway Android app that measures real screen-to-camera throughput. One phone flashes a looping transfer and the other scans it. It runs on the `toss-react-native` hooks, so it's also their first device test. It isn't the planned example app, and it isn't a workspace package.
+A throwaway Android app that measures real screen-to-camera throughput. One phone flashes a looping transfer and the other scans it. It runs on the `toss-react-native` hooks through `expo-toss`, so it's also their first device test. It isn't the planned example app, and it isn't a workspace package.
 
 ## Build
 
@@ -15,6 +15,12 @@ adb install -r android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Install it on both phones. It needs no server or network. The APK is signed with the debug key, so it's for your own devices only.
+
+To check the permissions, run this after installing. It should list `CAMERA`, and not `WRITE_SETTINGS` or `RECORD_AUDIO`:
+
+```sh
+adb shell dumpsys package com.khtdr.tossspike | grep -E 'android.permission.(CAMERA|WRITE_SETTINGS|RECORD_AUDIO)'
+```
 
 ## Run a test
 

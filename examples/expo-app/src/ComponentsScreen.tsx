@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { TossReceiver, TossSender } from 'toss-react-native';
+import { TossReceiver, TossSender } from 'expo-toss';
 import { sendOptions, testPayload, verifyPayload } from './run';
 import type { RunConfig } from './run';
 import { Button, Chips } from './ui';

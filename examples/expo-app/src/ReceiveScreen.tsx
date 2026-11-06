@@ -3,7 +3,7 @@ import type { BarcodeScanningResult } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTossReceive } from 'toss-react-native';
+import { useTossReceive } from 'expo-toss';
 import { verifyPayload } from './run';
 import { ScanLog } from './scan-log';
 import type { Summary } from './scan-log';

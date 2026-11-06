@@ -84,11 +84,27 @@ The components are whole screens. They handle the camera permission, preparing, 
 
 ### 4. `expo-toss`: packaging
 
-Thin by design. Peer-depends on `expo-camera`, adds a config plugin for permission strings, and re-exports the layer 3 API as one import.
+Thin by design. It re-exports the layer 3 API and adds a config plugin. An app installs it with the native modules it peer-depends on, which have to be the app's own dependencies for autolinking:
+
+```sh
+npm install expo-toss
+npx expo install expo-camera expo-brightness expo-keep-awake @shopify/react-native-skia react-native-safe-area-context
+```
+
+```json
+{ "expo": { "plugins": [["expo-toss", { "cameraPermission": "Optional iOS camera prompt" }]] } }
+```
 
 ```ts
-import Toss from 'expo-toss'
+import { TossReceiver, TossSender } from 'expo-toss'
 ```
+
+The plugin declares the camera and leaves out what toss doesn't use:
+
+- No microphone permission on Android, and no microphone text on iOS.
+- No `WRITE_SETTINGS`. Expo adds it for any app with `expo-brightness`, but toss only changes its own window's brightness. An app that calls `setSystemBrightnessAsync` itself can't use this plugin as it stands.
+
+Don't list `expo-camera` in `plugins` as well. It only runs once, so an entry above `expo-toss` replaces these settings and one below it is ignored.
 
 ## Possible future cells
 
@@ -147,8 +163,8 @@ toss/
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
-5. `toss-react-native`: hooks, then default components. Hooks run on two phones. Components built and tested, not yet run on a phone
-6. `expo-toss`: config plugin + packaging
+5. `toss-react-native`: hooks, then default components. Both run on two phones
+6. `expo-toss`: config plugin + packaging. Built and tested, and the spike uses it. Not yet run on a phone
 7. Wire into a real app: a small published file transfer app, replacing the spike in `examples/expo-app`. It's both a utility and a proof of concept
 
 ## Naming

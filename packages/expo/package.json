@@ -1,0 +1,46 @@
+{
+  "name": "expo-toss",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Expo packaging for toss: a config plugin for permissions, and the toss-react-native API in one import.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./app.plugin.cjs": "./app.plugin.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "app.plugin.cjs"
+  ],
+  "scripts": {
+    "build": "npm run build -w toss-core && npm run build -w toss-qr && npm run build -w toss-react-native && tsc -p tsconfig.build.json",
+    "typecheck": "npm run build && tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "toss-react-native": "*"
+  },
+  "peerDependencies": {
+    "@shopify/react-native-skia": ">=2.14.0",
+    "expo": ">=58.0.0",
+    "expo-brightness": "*",
+    "expo-camera": "*",
+    "expo-keep-awake": "*",
+    "react": ">=19.0.0",
+    "react-native": "*",
+    "react-native-safe-area-context": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@expo/prebuild-config": "^58.0.19",
+    "expo": "~58.0.23",
+    "expo-brightness": "~58.0.2",
+    "expo-camera": "~58.0.14"
+  }
+}
