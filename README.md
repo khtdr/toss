@@ -117,7 +117,9 @@ toss/
 
 ## Open questions
 
-- Optional encryption (shared passphrase)? Currently out of scope. Anyone who can see the screen can read it.
+- Optional encryption (shared passphrase)? Currently out of scope. Anyone who can see the screen can read it. A published file transfer app makes this more pressing.
+- Should the file transfer app get a fountain code? Files compress far less than JSON, and the plain loop's waits grow with size. See `docs/protocol.md`, Appendix B.
+- iOS: everything so far has only been tested on Android.
 
 ## Roadmap
 
@@ -127,7 +129,7 @@ toss/
 4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
 5. `toss-react-native`: hooks, then default components
 6. `expo-toss`: config plugin + packaging
-7. Wire into a real app
+7. Wire into a real app: a small published file transfer app, replacing the spike in `examples/expo-app`. It's both a utility and a proof of concept
 
 ## Naming
 
