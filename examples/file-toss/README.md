@@ -1,8 +1,14 @@
+<p align="center"><img src="assets/icon.png" alt="The File Toss icon" width="160"></p>
+
 # File Toss
 
 Send a file from one phone to another through the camera. The sender flashes a loop of QR codes and the receiver reads them. There's no network, no account and no pairing.
 
 It's the first real user of `toss`, and it isn't a workspace package. Android only for now.
+
+## Download
+
+Get `file-toss.apk` from the [releases page](https://github.com/khtdr/toss/releases). It's for 64-bit ARM Android phones. Your phone will ask you to allow installing it from outside the Play Store. If you've installed a copy you built yourself, uninstall that first, which deletes its history and any paused transfers.
 
 ## What it does
 
