@@ -124,7 +124,7 @@ toss/
 1. `toss-core`: frame format, encoder/decoder, tests with simulated loss/duplication/reordering
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
-4. Device spike: measure real camera/display throughput, using `examples/expo-app`
+4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
 5. `toss-react-native`: hooks, then default components
 6. `expo-toss`: config plugin + packaging
 7. Wire into a real app

@@ -28,6 +28,27 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 - **Default settings:** version 30, level M, 10 fps, as a configurable default in the React Native layer. Apps' payload sizes vary, so don't hard-code them.
 - Package names (checked on npm, available): `toss-core`, `toss-qr`, `toss-react-native`, `expo-toss`. Bare `toss` is taken.
 
+## Where things stand
+
+As of 2026-11-05, the device spike is finished. Its results are in `docs/qr.md`, section 4. **Next is `toss-react-native`.**
+
+Carry these into that layer:
+
+- Build the headless hooks first (`useTossSend`, `useTossReceive`), using `expo-camera` and Skia.
+- Default to version 30, level M, 10 fps, mask 0, all configurable.
+- Draw symbols while sending, not all up front. Mask 0 takes 22-35 ms per v30 symbol on the test phones, against the 100 ms that 10 fps allows.
+- Show live progress and ask people to hold steady. A good hand-held session reaches 9-11 KB/s, but a poor one can be several times slower.
+
+Not tested yet, in rough order of value:
+
+- Real JSON with compression on. Every spike run used incompressible data.
+- Versions 35 and 40, which the spike app offers.
+- Masks other than 0.
+- The Pixel as receiver with a lower camera analysis resolution. It managed about 15 scans/s against the Galaxy S21's 25, and the cause is unknown.
+- 15 fps from the Pixel to the S21.
+
+The test phones are a Galaxy S21 and a Pixel 10 Pro. To rebuild the spike, see `examples/expo-app/README.md`. It needs the Android SDK and JDK 21, and `android/` is generated, so a new machine rebuilds it.
+
 ## Open (don't silently decide)
 
 See "Open questions" in the README: encryption. Present a recommendation and let the owner choose.
