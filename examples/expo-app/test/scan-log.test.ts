@@ -11,6 +11,7 @@ const config: RunConfig = {
   fps: 10,
   payloadBytes: 4000,
   renderer: 'svg',
+  mask: 'best',
 };
 
 /** Scans a looping sender every `period` slots, 100 ms per slot. */

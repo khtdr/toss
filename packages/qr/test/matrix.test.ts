@@ -7,7 +7,7 @@ import {
   textToFrame,
   textToMatrix,
 } from '../src/index.js';
-import type { ErrorCorrection, QrConfig } from '../src/index.js';
+import type { ErrorCorrection, QrConfig, QrMask } from '../src/index.js';
 import { noise, scan } from './helpers.js';
 
 const config: QrConfig = { version: 5, errorCorrection: 'M' };
@@ -119,5 +119,29 @@ describe('a frame through a symbol', () => {
       for (let col = 20; col < 28; col++) modules[row * size + col]! ^= 1;
     }
     expect(textToFrame(scan(matrix)?.data ?? '')).toEqual({ ok: true, frame });
+  });
+});
+
+describe('textToMatrix masks', () => {
+  const masks: QrMask[] = [0, 1, 2, 3, 4, 5, 6, 7];
+  const text = frameToText(noise(60, 9));
+  const symbols = masks.map((mask) => textToMatrix(text, { ...config, mask }));
+
+  it('draws a different symbol for each mask', () => {
+    const distinct = new Set(symbols.map(({ modules }) => modules.join('')));
+    expect(distinct.size).toBe(masks.length);
+  });
+
+  it('holds the same text under every mask', () => {
+    for (const symbol of symbols) expect(scan(symbol)?.data).toBe(text);
+  });
+
+  it('searches when no mask is given, and picks one of the eight', () => {
+    const searched = textToMatrix(text, config);
+    expect(symbols.filter(({ modules }) => modules.join('') === searched.modules.join(''))).toHaveLength(1);
+  });
+
+  it.each([-1, 8, 1.5, Number.NaN])('rejects %s as a mask', (mask) => {
+    expect(() => textToMatrix(text, { ...config, mask: mask as QrMask })).toThrow(RangeError);
   });
 });

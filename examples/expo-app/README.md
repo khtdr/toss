@@ -37,6 +37,15 @@ Do these in order, and stop a stage early once results stop improving. Use 20 KB
 6. **Check a large transfer.** Run the best setting at 200 KB. Note the `drew` figure on the sender, which is the startup cost on Hermes.
 7. **Swap the phones**, then repeat the best setting.
 
+## Fixed mask test
+
+Choosing a mask is most of the cost of drawing a symbol, so this build can skip that search. The sender now starts at version 30, level M, 10 fps, 50 KB, Skia, with a fixed mask.
+
+1. Run that setting at least three times, then the same with **Mask** set to `best`. Fixed runs end in `-fixed` in the results.
+2. Note the sender's `drew` line for each mask, on each phone.
+3. Compare `captured` and time between the two. The fixed mask is only worth having if it scans as well as the best mask.
+4. If time allows, try versions 35 and 40, which this build adds.
+
 ## Reading the results
 
 | Field | Meaning |

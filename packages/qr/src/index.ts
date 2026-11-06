@@ -9,6 +9,6 @@ export {
 } from './capacity.js';
 export type { ErrorCorrection, QrConfig } from './capacity.js';
 export { QUIET_ZONE_MODULES, textToMatrix } from './matrix.js';
-export type { QrMatrix } from './matrix.js';
+export type { MatrixOptions, QrMask, QrMatrix } from './matrix.js';
 export { frameToText, textToFrame } from './text.js';
 export type { TextError, TextResult } from './text.js';

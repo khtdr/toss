@@ -51,6 +51,8 @@ export async function prepare(
   now: () => number,
 ): Promise<Prepared> {
   const encoder = encoderFor(config);
+  const { version, errorCorrection } = config;
+  const options = config.mask === 'fixed' ? { version, errorCorrection, mask: 0 as const } : { version, errorCorrection };
   const paths: string[] = [];
   let total = 0;
   let max = 0;
@@ -58,7 +60,7 @@ export async function prepare(
 
   for (let t = 0; t < encoder.cycleLength; t++) {
     const start = now();
-    const matrix = textToMatrix(frameToText(encoder.frameAt(t)), config);
+    const matrix = textToMatrix(frameToText(encoder.frameAt(t)), options);
     paths.push(matrixToPath(matrix));
     const elapsed = now() - start;
     total += elapsed;

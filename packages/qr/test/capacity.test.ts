@@ -1,4 +1,4 @@
-import qrcode from 'qrcode-generator';
+import vendored from '../src/vendor/qrcode.js';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_TEXT_LENGTH,
@@ -12,6 +12,11 @@ import {
 } from '../src/index.js';
 import type { ErrorCorrection, QrConfig } from '../src/index.js';
 
+const qrcode = vendored as unknown as (
+  version: number,
+  level: string,
+) => { addData(text: string, mode: 'Alphanumeric'): void; make(): void };
+
 const LEVELS: ErrorCorrection[] = ['L', 'M', 'Q', 'H'];
 const VERSIONS = Array.from({ length: MAX_VERSION }, (_, i) => i + MIN_VERSION);
 const CONFIGS: QrConfig[] = LEVELS.flatMap((errorCorrection) =>
@@ -19,7 +24,7 @@ const CONFIGS: QrConfig[] = LEVELS.flatMap((errorCorrection) =>
 );
 
 function fits(chars: number, { version, errorCorrection }: QrConfig): boolean {
-  const qr = qrcode(version as Parameters<typeof qrcode>[0], errorCorrection);
+  const qr = qrcode(version, errorCorrection);
   qr.addData('A'.repeat(chars), 'Alphanumeric');
   try {
     qr.make();

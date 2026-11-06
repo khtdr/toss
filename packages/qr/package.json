@@ -21,9 +21,6 @@
     "typecheck": "npm run build -w toss-core && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
     "test": "npm run build -w toss-core && vitest run"
   },
-  "dependencies": {
-    "qrcode-generator": "^2.0.4"
-  },
   "devDependencies": {
     "jsqr": "^1.4.0",
     "toss-core": "*"

@@ -22,7 +22,7 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 - **Compression:** on by default, kept only if smaller, `compress: false` to opt out. Raw DEFLATE via `fflate`, a direct dependency of `toss-core`.
 - **Text codec:** owned by the carrier layer. Core handles raw bytes only.
 - **Workspaces:** npm.
-- **QR carrier:** `docs/qr.md`. Frame text is `T` plus base45, in one alphanumeric segment, at one fixed version per transfer. The `T` keeps the text from starting with a space. `toss-qr` encodes symbols with `qrcode-generator`.
+- **QR carrier:** `docs/qr.md`. Frame text is `T` plus base45, in one alphanumeric segment, at one fixed version per transfer. The `T` keeps the text from starting with a space. `toss-qr` encodes symbols with a vendored copy of `qrcode-generator`, patched so callers can skip the mask search. The React Native layer should pass mask 0.
 - **CLI:** `toss-cli` draws frames through `toss-qr`. Scanning PNGs with `jsqr` and `pngjs` stays in the CLI, since a device's camera does that job.
 - **Device layer:** `expo-camera` for scanning and Skia for drawing, chosen from the spike results in `docs/qr.md`, section 4.
 - **Default settings:** version 30, level M, 10 fps, as a configurable default in the React Native layer. Apps' payload sizes vary, so don't hard-code them.

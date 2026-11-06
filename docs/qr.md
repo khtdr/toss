@@ -59,6 +59,8 @@ Every frame in a transfer uses the same version and error correction level, so t
 
 Renderers must leave `QUIET_ZONE_MODULES` (4) of white on every side. A matrix doesn't include it.
 
+`textToMatrix` searches for the best mask unless it's given a `mask`. Any mask is valid, because scanners read which one was used, and a fixed one is much faster. See section 4.
+
 The smallest symbols return a size that can't hold a toss header, and `Encoder` throws for those.
 
 ## 4. Device spike results
@@ -71,7 +73,8 @@ Measured with `examples/expo-app` on a Galaxy S21 and a Pixel 10 Pro, using expo
 - **Renderer.** Skia averaged about 8.9 KB/s and `react-native-svg` about 5.3 KB/s, from S21 sender runs at v30-M. The S21 held 10 fps with no skipped slots on a Skia run. SVG's sender figures weren't recorded.
 - **Direction.** Pixel to S21 matched S21 to Pixel, at 4.2 and 5.3 s for 50 KB.
 - **Large transfers.** 200 KB took 33-38 s at v30-M, with 87% of symbols captured. One clean pass would take about 17 s.
-- **Render cost.** Preparing a v30 symbol took 237 ms on the S21 and 146 ms on the Pixel, so 200 KB needed 39.5 s on the S21 before the first symbol appeared. In Node, `qrcode-generator` spends about 94% of its time choosing a mask: about 35 ms per symbol, against about 2 ms with a fixed mask. That hasn't been measured on Hermes, and the effect of a fixed mask on scanning is untested.
+- **Render cost.** Searching for the best mask took 237 ms per v30 symbol on the S21 and 146 ms on the Pixel, so 200 KB needed 39.5 s on the S21 before the first symbol appeared. A fixed mask took 34.7 ms and 22.4 ms, which is fast enough to draw while sending at 10 fps.
+- **Mask.** In four alternating runs, mask 0 averaged 13.2 s and the searched mask 18.1 s, with very wide spread, so there's no measurable scanning cost. Only mask 0 has been tested. Those runs were all slow, at 5-12 scans/s, so conditions matter more than the mask, and a poor session can be several times slower than a good one.
 - **Scanner behaviour.** ML Kit kept the check text's leading and trailing spaces, and its display value never differed from its raw value. `jsQR` and `zbar` also keep spaces and every other alphanumeric character.
 
-There's still deliberately no default config in this package. v30-M at 10 fps is the best setting measured, and the choice belongs with the React Native layer.
+There's still deliberately no default config in this package. v30-M at 10 fps with mask 0 is the best setting measured, and that default belongs in the React Native layer.

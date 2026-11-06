@@ -7,15 +7,16 @@ import type { ErrorCorrection } from 'toss-qr';
 import { matrixToPath, prepare } from './prepare';
 import type { Prepared } from './prepare';
 import { CHECK_TEXT } from './run';
-import type { Renderer, RunConfig } from './run';
+import type { Mask, Renderer, RunConfig } from './run';
 import { Symbol } from './Symbol';
 import { Button, Chips } from './ui';
 
-const VERSIONS = [6, 8, 10, 12, 15, 20, 25, 30] as const;
+const VERSIONS = [6, 8, 10, 12, 15, 20, 25, 30, 35, 40] as const;
 const LEVELS: readonly ErrorCorrection[] = ['L', 'M', 'Q', 'H'];
 const RATES = [3, 5, 8, 10, 12, 15, 20, 30] as const;
 const SIZES_KB = [5, 20, 50, 200] as const;
 const RENDERERS: readonly Renderer[] = ['svg', 'skia'];
+const MASKS: readonly Mask[] = ['best', 'fixed'];
 const CHECK_CONFIG = { version: 5, errorCorrection: 'M' } as const;
 
 /** A side in layout units that gives every module a whole number of pixels. */
@@ -70,7 +71,7 @@ function Flasher({ config, prepared, onStop }: { config: RunConfig; prepared: Pr
         renderer={config.renderer}
       />
       <Text style={styles.stats}>
-        v{config.version}-{config.errorCorrection}, {prepared.frameCount} frames of {prepared.frameBytes} B,{' '}
+        v{config.version}-{config.errorCorrection}, {config.renderer}, {config.mask} mask, {prepared.frameCount} frames of {prepared.frameBytes} B,{' '}
         {prepared.paths.length} per cycle, {pixelsPerModule} px/module{'\n'}
         drew {prepared.drawMs.mean.toFixed(1)} ms each, {(prepared.drawMs.total / 1000).toFixed(1)} s total
         {'\n'}
@@ -101,16 +102,17 @@ function CheckSymbol({ onStop }: { onStop: () => void }) {
 }
 
 export function SendScreen({ onBack }: { onBack: () => void }) {
-  const [version, setVersion] = useState<number>(10);
+  const [version, setVersion] = useState<number>(30);
   const [errorCorrection, setLevel] = useState<ErrorCorrection>('M');
-  const [fps, setFps] = useState<number>(5);
-  const [sizeKb, setSizeKb] = useState<number>(20);
-  const [renderer, setRenderer] = useState<Renderer>('svg');
+  const [fps, setFps] = useState<number>(10);
+  const [sizeKb, setSizeKb] = useState<number>(50);
+  const [renderer, setRenderer] = useState<Renderer>('skia');
+  const [mask, setMask] = useState<Mask>('fixed');
   const [prepared, setPrepared] = useState<Prepared>();
   const [progress, setProgress] = useState('');
   const [drawing, setDrawing] = useState(false);
   const [checking, setChecking] = useState(false);
-  const config: RunConfig = { version, errorCorrection, fps, payloadBytes: sizeKb * 1024, renderer };
+  const config: RunConfig = { version, errorCorrection, fps, payloadBytes: sizeKb * 1024, renderer, mask };
 
   // Screen brightness only applies to this app, and goes back when it stops.
   const bright = prepared !== undefined || checking;
@@ -156,6 +158,7 @@ export function SendScreen({ onBack }: { onBack: () => void }) {
       <Chips label="Frames per second" options={RATES} value={fps as (typeof RATES)[number]} onChange={setFps} />
       <Chips label="Payload (KB)" options={SIZES_KB} value={sizeKb as (typeof SIZES_KB)[number]} onChange={setSizeKb} />
       <Chips label="Renderer" options={RENDERERS} value={renderer} onChange={setRenderer} />
+      <Chips label="Mask" options={MASKS} value={mask} onChange={setMask} />
       <Button label="Start" onPress={start} />
       <Button label="Show scanner check" onPress={() => setChecking(true)} />
       <Button label="Back" onPress={onBack} />
@@ -167,7 +170,7 @@ export function SendScreen({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   form: { padding: 16, paddingTop: 48 },
   flash: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  drawing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  drawingText: { fontSize: 18 },
+  drawing: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  drawingText: { color: '#000', fontSize: 18 },
   stats: { marginTop: 16, color: '#444', textAlign: 'center', fontSize: 12 },
 });

@@ -1,6 +1,7 @@
 import type { ErrorCorrection } from 'toss-qr';
 
 export type Renderer = 'svg' | 'skia';
+export type Mask = 'best' | 'fixed';
 
 export interface RunConfig {
   version: number;
@@ -8,6 +9,7 @@ export interface RunConfig {
   fps: number;
   payloadBytes: number;
   renderer: Renderer;
+  mask: Mask;
 }
 
 /**
@@ -16,22 +18,24 @@ export interface RunConfig {
  */
 export const CHECK_TEXT = '  0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  $%*+-./:  ';
 
-const KIND = /^spike-v(\d+)-([LMQH])-(\d+)fps-(svg|skia)$/;
+const KIND = /^spike-v(\d+)-([LMQH])-(\d+)fps-(svg|skia)(-fixed)?$/;
 
 /** Sent as the transfer's `kind`, so a receiver needs no settings of its own. */
-export function runKind({ version, errorCorrection, fps, renderer }: RunConfig): string {
-  return `spike-v${version}-${errorCorrection}-${fps}fps-${renderer}`;
+export function runKind({ version, errorCorrection, fps, renderer, mask }: RunConfig): string {
+  const suffix = mask === 'fixed' ? '-fixed' : '';
+  return `spike-v${version}-${errorCorrection}-${fps}fps-${renderer}${suffix}`;
 }
 
 export function parseKind(kind: string): Omit<RunConfig, 'payloadBytes'> | undefined {
   const match = KIND.exec(kind);
   if (!match) return undefined;
-  const [, version, errorCorrection, fps, renderer] = match;
+  const [, version, errorCorrection, fps, renderer, fixed] = match;
   return {
     version: Number(version),
     errorCorrection: errorCorrection as ErrorCorrection,
     fps: Number(fps),
     renderer: renderer as Renderer,
+    mask: fixed ? 'fixed' : 'best',
   };
 }
 
