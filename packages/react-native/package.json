@@ -2,7 +2,7 @@
   "name": "toss-react-native",
   "version": "0.0.0",
   "private": true,
-  "description": "React Native bindings for toss: headless send and receive hooks, using expo-camera and Skia.",
+  "description": "React Native bindings for toss: headless send and receive hooks and default components, using expo-camera and Skia.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

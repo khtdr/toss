@@ -59,7 +59,7 @@ See `docs/qr.md`.
 The platform-specific I/O lives here: camera, drawing, keep-awake, brightness.
 
 - Headless hooks: `useTossSend(data, opts)` and `useTossReceive()` (state, progress, cancel)
-- Optional default components: `<TossSender>` and `<TossReceiver>`
+- Default components: `<TossSender>` and `<TossReceiver>`, built only on the public hooks
 - Apps control their own confirmation and UI; components are a convenience
 
 ```tsx
@@ -70,6 +70,14 @@ send.symbol && <TossSymbol symbol={send.symbol} />
 const receive = useTossReceive({ maxPayloadBytes: 1024 * 1024 })
 <CameraView style={{ flex: 1 }} {...receive.cameraProps} />
 // receive.status, .progress, .stalledMs, then .payload and .meta. Both are untrusted.
+```
+
+The components are whole screens. They handle the camera permission, preparing, progress, asking people to hold steady, and errors:
+
+```tsx
+<TossSender data={data} mime="application/json" kind="theme" onStop={close} />
+
+<TossReceiver maxPayloadBytes={1024 * 1024} onReceive={(payload, meta) => review(payload, meta)} onCancel={close} />
 ```
 
 `SendSession` and `ReceiveSession` hold the logic and take the clock as an argument, so tests need no device. The hooks connect them to the platform. Each new symbol goes straight to `TossSymbol`, so the calling screen doesn't re-render at the frame rate.
@@ -130,7 +138,7 @@ toss/
 ## Open questions
 
 - Optional encryption (shared passphrase)? Currently out of scope. Anyone who can see the screen can read it. A published file transfer app makes this more pressing.
-- Should the file transfer app get a fountain code? Files compress far less than JSON, and the plain loop's waits grow with size. See `docs/protocol.md`, Appendix B.
+- Should the file transfer app get a fountain code? Deferred until real files are being sent. Files compress far less than JSON, and the plain loop's waits grow with size. See `docs/protocol.md`, Appendix B.
 - iOS: everything so far has only been tested on Android.
 
 ## Roadmap
@@ -139,7 +147,7 @@ toss/
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
-5. `toss-react-native`: hooks, then default components. Hooks done and run on two phones, default components next
+5. `toss-react-native`: hooks, then default components. Hooks run on two phones. Components built and tested, not yet run on a phone
 6. `expo-toss`: config plugin + packaging
 7. Wire into a real app: a small published file transfer app, replacing the spike in `examples/expo-app`. It's both a utility and a proof of concept
 

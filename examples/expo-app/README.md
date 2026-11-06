@@ -39,6 +39,14 @@ The sender starts at version 30, level M, 10 fps, 50 KB of JSON. Do these in ord
 
 If time allows, try versions 35 and 40.
 
+## Try the default components
+
+**Components** runs `TossSender` and `TossReceiver` as an app would, at the default settings. Pick a size, tap **Send** on one phone and **Receive** on the other.
+
+- At 1024 KB, the sender should show **Preparing** with a spinner before the first symbol.
+- Move the receiver off the code partway through. **Hold steady** should appear after about 2 seconds.
+- When a run finishes, **Cancel** or **Back** out to the menu, which shows `verified` for the last transfer.
+
 ## Reading the results
 
 | Field | Meaning |

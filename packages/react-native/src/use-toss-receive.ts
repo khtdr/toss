@@ -1,6 +1,7 @@
 import { useCameraPermissions } from 'expo-camera';
 import type { BarcodeScanningResult, BarcodeSettings, CameraViewProps, PermissionResponse } from 'expo-camera';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { AppState } from 'react-native';
 import { ReceiveSession } from './receive-session.js';
 import type { ReceiveOptions, ReceiveSnapshot } from './receive-session.js';
 import { useScreenAwake } from './screen.js';
@@ -34,7 +35,17 @@ function scannedText({ data, raw }: BarcodeScanningResult): string {
 export function useTossReceive(options: ReceiveOptions = {}): TossReceive {
   const [session] = useState(() => new ReceiveSession(options, performance.now()));
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission, getPermission] = useCameraPermissions();
+
+  // Someone sent to the system settings comes back here, and nothing else says so.
+  const denied = permission?.granted === false;
+  useEffect(() => {
+    if (!denied) return;
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') getPermission().catch(() => {});
+    });
+    return () => appState.remove();
+  }, [denied, getPermission]);
 
   const scanning = snapshot.status === 'searching' || snapshot.status === 'receiving';
   useScreenAwake(scanning);

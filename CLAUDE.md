@@ -30,17 +30,15 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Where things stand
 
-As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike in `examples/expo-app`. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4. **Next is the default components.**
+As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike in `examples/expo-app`. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4.
 
-Carry these into them:
+`TossSender` and `TossReceiver` are built on those hooks, with a **Components** screen in the spike. **They haven't run on a phone yet, so that's next.** Check that **Preparing** really paints before a 1 MB start blocks the JS thread. The hook defers building the session to a later task for that reason, but tests can't show what reaches the screen.
 
-- Show live progress and ask people to hold steady, using `stalledMs`. Most of a long transfer's time goes on the last few blocks, so a stall near the end is normal.
-- Show a brief "preparing" state. Starting 1 MB blocks the screen for 0.7-0.9 s.
-- `examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
+`examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
 
 After that layer comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
 
-- **Fountain code:** the decision not to add one assumed JSON, so revisit it for this app. 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes, but receiver CPU on Hermes is unmeasured. A lower size cap is the alternative. The owner hasn't decided.
+- **Fountain code:** deferred by the owner until they're sending real files. Don't build it or raise it before then. For reference, 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes. When it comes back, first benchmark receiver CPU on Hermes.
 - **Privacy:** there's no encryption, so the app should say that anyone who can see the screen can read the file.
 - **Received files:** they're untrusted. Clean up filenames, enforce size caps, and hand files to the system's save or share sheet instead of opening them.
 - **Publishing:** it needs a real signing key, a privacy policy and a camera permission message. Check Google Play's current testing rules for new personal accounts early.
@@ -58,7 +56,7 @@ The test phones are a Galaxy S21 and a Pixel 10 Pro. The S21's USB connection dr
 
 ## Open (don't silently decide)
 
-See "Open questions" in the README: encryption, a fountain code for the file transfer app, and iOS. Present a recommendation and let the owner choose.
+See "Open questions" in the README: encryption and iOS. A fountain code is deferred, as noted above. Present a recommendation and let the owner choose.
 
 ## Build order
 

@@ -15,7 +15,9 @@ const screen = vi.hoisted(() => ({
   deactivateKeepAwake: vi.fn(async (_tag?: string) => {}),
   setBrightnessAsync: vi.fn(async (_value: number) => {}),
   restoreSystemBrightnessAsync: vi.fn(async () => {}),
+  permission: { granted: true } as { granted: boolean },
   requestPermission: vi.fn(),
+  getPermission: vi.fn(async () => {}),
   app: {
     currentState: 'active',
     listeners: new Set<(state: string) => void>(),
@@ -42,7 +44,7 @@ vi.mock('expo-brightness', () => ({
   restoreSystemBrightnessAsync: screen.restoreSystemBrightnessAsync,
 }));
 vi.mock('expo-camera', () => ({
-  useCameraPermissions: () => [{ granted: true }, screen.requestPermission],
+  useCameraPermissions: () => [screen.permission, screen.requestPermission, screen.getPermission],
 }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -55,6 +57,7 @@ beforeEach(() => {
   vi.stubGlobal('requestAnimationFrame', (callback: () => void) => setTimeout(callback, 16));
   vi.stubGlobal('cancelAnimationFrame', (handle: ReturnType<typeof setTimeout>) => clearTimeout(handle));
   vi.clearAllMocks();
+  screen.permission = { granted: true };
   screen.app.currentState = 'active';
   screen.app.listeners.clear();
 });
@@ -64,7 +67,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderSend(data: Uint8Array | null, sendOptions = options) {
+/** Runs the task that builds the session. */
+function finishPreparing() {
+  act(() => {
+    vi.advanceTimersByTime(0);
+  });
+}
+
+function renderSend(data: Uint8Array | null, sendOptions = options, { prepare = true } = {}) {
   const seen: { current: TossSend; renders: number } = { current: undefined as never, renders: 0 };
   function Host(props: { data: Uint8Array | null; options: TossSendOptions }) {
     seen.current = useTossSend(props.data, props.options);
@@ -75,10 +85,12 @@ function renderSend(data: Uint8Array | null, sendOptions = options) {
   act(() => {
     root = create(<Host data={data} options={sendOptions} />);
   });
+  if (prepare) finishPreparing();
   return {
     seen,
     update(next: Uint8Array | null, nextOptions = sendOptions) {
       act(() => root.update(<Host data={next} options={nextOptions} />));
+      if (prepare) finishPreparing();
     },
     unmount() {
       act(() => root.unmount());
@@ -120,6 +132,33 @@ describe('useTossSend', () => {
     expect(seen.current).toMatchObject({ status: 'idle', symbol: null, frameCount: null });
     expect(screen.activateKeepAwakeAsync).not.toHaveBeenCalled();
     expect(screen.setBrightnessAsync).not.toHaveBeenCalled();
+  });
+
+  it('is preparing from its first render, and builds nothing until a later task', () => {
+    const { seen } = renderSend(noise(3000), options, { prepare: false });
+    expect(seen.current).toMatchObject({ status: 'preparing', symbol: null, frameCount: null });
+    expect(screen.activateKeepAwakeAsync).not.toHaveBeenCalled();
+
+    finishPreparing();
+    expect(seen.current.status).toBe('sending');
+    expect(seen.current.symbol).not.toBeNull();
+  });
+
+  it('prepares again for new data, without showing the old symbols', () => {
+    const { seen, update } = renderSend(noise(3000, 1), options, { prepare: false });
+    finishPreparing();
+    update(noise(3000, 2));
+    expect(seen.current).toMatchObject({ status: 'preparing', symbol: null });
+    finishPreparing();
+    expect(seen.current.status).toBe('sending');
+  });
+
+  it('can be cancelled while preparing', () => {
+    const { seen } = renderSend(noise(3000), options, { prepare: false });
+    act(() => seen.current.cancel());
+    finishPreparing();
+    expect(seen.current).toMatchObject({ status: 'cancelled', symbol: null });
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('starts sending, with the default settings for anything unset', () => {
@@ -209,6 +248,8 @@ describe('useTossSend', () => {
     expect(first.getSymbol()).toBe(frozen);
 
     act(() => seen.current.restart());
+    expect(seen.current.status).toBe('preparing');
+    finishPreparing();
     expect(seen.current.status).toBe('sending');
   });
 
@@ -236,6 +277,12 @@ describe('useTossSend', () => {
     expect(screen.activateKeepAwakeAsync).not.toHaveBeenCalled();
   });
 
+  it('leaves nothing running if it unmounts while preparing', () => {
+    const { unmount } = renderSend(noise(3000), options, { prepare: false });
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('leaves nothing running after unmounting', () => {
     const { unmount } = renderSend(noise(3000));
     unmount();
@@ -261,6 +308,22 @@ describe('useTossReceive', () => {
     });
     expect(seen.current.permission).toEqual({ granted: true });
     expect(seen.current.requestPermission).toBe(screen.requestPermission);
+  });
+
+  it('rechecks a denied permission when the app comes back, as settings may have changed', () => {
+    screen.permission = { granted: false };
+    const { unmount } = renderReceive();
+    for (const listener of screen.app.listeners) listener('background');
+    expect(screen.getPermission).not.toHaveBeenCalled();
+    for (const listener of screen.app.listeners) listener('active');
+    expect(screen.getPermission).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(screen.app.listeners.size).toBe(0);
+  });
+
+  it('ignores the app coming back once the camera is allowed', () => {
+    renderReceive();
+    expect(screen.app.listeners.size).toBe(0);
   });
 
   it('completes a transfer, then stops scanning and lets the screen sleep', () => {
