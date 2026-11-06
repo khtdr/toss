@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="A page with QR finder squares, tossed along an arc" width="240"></p>
+
 # toss
 
 Toss data from one device to another across the air gap. No network, no accounts, no pairing.

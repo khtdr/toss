@@ -40,7 +40,7 @@ adb install -r android/app/build/outputs/apk/release/app-release.apk
 
 The APK is signed with the debug key, so it's for your own devices only. Publishing needs a real signing key. `eas.json` has `preview` and `production` profiles, but they haven't been run, and EAS would also need to build the linked `packages/` first.
 
-`npm test`, `npm run typecheck` and `npm run lint` need no device. The screen tests run the real screens and hooks in Node, on an in-memory file system in `test/shims.tsx`. `npm run icons` redraws every icon from `scripts/make-icons.py`, and needs `rsvg-convert`.
+`npm test`, `npm run typecheck` and `npm run lint` need no device. The screen tests run the real screens and hooks in Node, on an in-memory file system in `test/shims.tsx`. `npm run icons` remakes every icon from `docs/logo.png` with `scripts/make-icons.py`, and needs Pillow and numpy.
 
 `npx expo-doctor` reports two failures, both expected: `disableHierarchicalLookup` must stay (see `metro.config.js`), and the root's dev copies of Expo packages look like duplicates. Metro never reads those copies. That setting also hides anything nested in `node_modules/*/node_modules`, which is why `@expo/metro-runtime` is a direct dependency here.
 
