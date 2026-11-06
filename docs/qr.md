@@ -65,7 +65,7 @@ The smallest symbols return a size that can't hold a toss header, and `Encoder` 
 
 ## 4. Device spike results
 
-Measured with `examples/expo-app` on a Galaxy S21 and a Pixel 10 Pro, using expo-camera and a hand-held receiver. Each setting has only a few runs, and times vary a lot between runs. Every completed run verified, and no scan was rejected.
+Measured with a spike app, now replaced by File Toss (it's in git at `340a056`, under `examples/expo-app`), on a Galaxy S21 and a Pixel 10 Pro, using expo-camera and a hand-held receiver. Each setting has only a few runs, and times vary a lot between runs. Every completed run verified, and no scan was rejected.
 
 - **Rate.** At v10-M, 10 fps gave the best result, with 99% of symbols captured. Capture fell to 87% at 12 fps and 78% at 15 fps. The Pixel sustained about 15 scans/s and the S21 about 25, so this limit depends on the receiver.
 - **Version.** Larger symbols won clearly, and scan rate barely changed with size. v30-M moved 50 KB in 4.3-8.8 s, about 8.9 KB/s on average. v10-M took 42 s. Nothing above v30 has been tested.

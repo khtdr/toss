@@ -26,3 +26,11 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - run: npm ci
+        working-directory: examples/file-toss
+      - run: npm run typecheck
+        working-directory: examples/file-toss
+      - run: npm run lint
+        working-directory: examples/file-toss
+      - run: npm test
+        working-directory: examples/file-toss

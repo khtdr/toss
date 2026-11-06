@@ -30,32 +30,35 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Where things stand
 
-As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike in `examples/expo-app`. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4.
+As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4.
 
-`TossSender` and `TossReceiver` are built on those hooks, with a **Components** screen in the spike. The owner has run them on the phones and they work. **Preparing** shows briefly before a 1 MB start, so deferring the session build to a later task does get it on screen before the JS thread blocks. Keep that deferral: tests can't show what reaches the screen.
+`TossSender` and `TossReceiver` are built on those hooks. The owner has run them on the phones and they work. **Preparing** shows briefly before a 1 MB start, so deferring the session build to a later task does get it on screen before the JS thread blocks. Keep that deferral: tests can't show what reaches the screen.
 
-`expo-toss` is built, and the spike now imports from it and uses its config plugin. Its tests run Expo's real prebuild pipeline. **It hasn't run on a phone yet.** Check that full brightness still works without `WRITE_SETTINGS`, and that the release APK doesn't declare it. `tools:node="remove"` only takes effect in Gradle's manifest merge, which hasn't been run.
+`expo-toss` is built. Its tests run Expo's real prebuild pipeline. **It hasn't run on a phone yet.** Check that full brightness still works without `WRITE_SETTINGS`, and that the release APK doesn't declare it. `tools:node="remove"` only takes effect in Gradle's manifest merge, which hasn't been run.
 
-`examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
+**File Toss**, in `examples/file-toss`, replaced the spike. It's the layers' first real user, as a utility and a proof of concept. Its README covers how resuming and the estimate work, and lists what to check on the phones. **It hasn't run on a phone yet, and it hasn't had a native build.** The machine it was written on has no JDK 21. The spike is in git at `340a056`, under `examples/expo-app`, if more measurements are needed.
 
-Next comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
+`examples/file-toss/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too. It also hides anything nested in `node_modules/*/node_modules`, so a package nested there has to become a direct dependency. `@expo/metro-runtime` is one. `expo export -p android` shows this, while tests and typechecks don't.
 
-- **Fountain code:** deferred by the owner until they're sending real files. Don't build it or raise it before then. For reference, 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes. When it comes back, first benchmark receiver CPU on Hermes.
-- **Privacy:** there's no encryption, so the app should say that anyone who can see the screen can read the file.
-- **Received files:** they're untrusted. Clean up filenames, enforce size caps, and hand files to the system's save or share sheet instead of opening them.
-- **Permissions:** Expo's template still declares `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and the old storage permissions. `expo-toss` leaves those alone, since they're an app's choice. The app should decide on each one, as a transfer app with no `INTERNET` permission would back up the privacy notice.
-- **Publishing:** it needs a real signing key, a privacy policy and a camera permission message. Check Google Play's current testing rules for new personal accounts early.
+- **Size limit:** 64 MiB, for memory and to stop a hostile sender claiming an enormous file. The owner asked for no 1 MB cap, and this is about 4.5 hours of transfer. The time estimate, not a limit, is what's meant to put people off.
+- **Filename:** carried in `kind` as `file-toss/1:` plus the percent-encoded name, so the receiver has it from the header. It's untrusted, and it goes through `sanitizeFilename`.
+- **Resume:** the receiver logs frames and replays them through a new decoder, so `toss-core` has no save or restore API. Don't add one without a reason. Anything that changes the bytes of the header changes the session, so `planTransfer` and `nameToKind` must stay deterministic.
+- **Fountain code:** deferred by the owner until they're sending real files, which File Toss now does, so it's the owner's call. Don't build it unasked. For reference, 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes. When it comes back, first benchmark receiver CPU on Hermes.
+- **Privacy:** there's no encryption, so the app says that anyone who can see the screen can read the file.
+- **Received files:** they're untrusted. Filenames are cleaned, sizes capped, and files go to the system's save or share sheet, never opened.
+- **Permissions:** `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and the old storage permissions are blocked in `app.json`. The About screen promises no internet access, so that must stay true.
+- **Publishing:** it still needs a real signing key and a privacy policy. Check Google Play's current testing rules for new personal accounts early. `eas.json` hasn't been run.
 
 Not tested yet, in rough order of value:
 
 - Real app JSON. The hook runs used synthetic JSON, which may compress better. 1 MB of it hasn't been run either.
 - The hooks with the phones swapped, Pixel sending to the S21.
-- Versions 35 and 40, which the spike app offers.
+- Versions 35 and 40.
 - Masks other than 0.
 - The Pixel as receiver with a lower camera analysis resolution. It managed about 15 scans/s against the Galaxy S21's 25, and the cause is unknown.
 - 15 fps from the Pixel to the S21.
 
-The test phones are a Galaxy S21 and a Pixel 10 Pro. The S21's USB connection drops in and out, and each reconnect opens the USB settings page over the app, so prefer wireless debugging for long `adb` sessions. To rebuild the spike, see `examples/expo-app/README.md`. It needs the Android SDK and JDK 21, and `android/` is generated, so a new machine rebuilds it.
+The test phones are a Galaxy S21 and a Pixel 10 Pro. The S21's USB connection drops in and out, and each reconnect opens the USB settings page over the app, so prefer wireless debugging for long `adb` sessions. To build the app, see `examples/file-toss/README.md`. It needs the Android SDK and JDK 21, and `android/` is generated, so a new machine rebuilds it.
 
 ## Open (don't silently decide)
 

@@ -1,6 +1,30 @@
-# toss spike
+# File Toss
 
-A throwaway Android app that measures real screen-to-camera throughput. One phone flashes a looping transfer and the other scans it. It runs on the `toss-react-native` hooks through `expo-toss`, so it's also their first device test. It isn't the planned example app, and it isn't a workspace package.
+Send a file from one phone to another through the camera. The sender flashes a loop of QR codes and the receiver reads them. There's no network, no account and no pairing.
+
+It's the first real user of `toss`, and it isn't a workspace package. Android only for now.
+
+## What it does
+
+- **Estimates first.** Before anything flashes, the sender shows the expected time, and warns about sore arms in proportion. The receiver shows a live time left.
+- **Pause and resume.** Either side can pause. The receiver keeps what's arrived, even if the app is killed, and the sender can pick up from the same place in the loop.
+- **History.** Everything sent and received, with paused transfers at the top. Received files stay in the app until they're saved or shared.
+
+Files can be up to 64 MiB. Both phones hold the file in memory, and at 4 KB/s that's about 4.5 hours.
+
+## How resuming works
+
+Nothing here needs `toss-core` to save its state, and the wire format is unchanged.
+
+- Session IDs come from the content, so sending the same file again is the same session. `planTransfer` is deterministic for this reason, and so is the filename in `kind`.
+- The receiver logs each new frame to `partial/<session>.log`. When a header arrives, any log for that session is replayed through the new decoder. So resuming needs no choice from anyone: point the camera at the same file.
+- The sender saves its loop position, and passes it back as `startPosition`.
+
+A change to the send settings or to `kind`'s format changes the session, so a transfer paused on an older version won't resume.
+
+## How the estimate works
+
+`src/lib/estimate.ts` models the plain loop: each pass catches each block with chance `p`, so the time is the longest of `n` geometric waits. That's why the last few blocks take so long. The range uses the capture rates measured on real phones, 84-92%, and covers the 1 MB run on phones and the middle of a simulated run at every size tested. Compressibility comes from four slices of the file, which also decides whether to compress at all.
 
 ## Build
 
@@ -8,64 +32,32 @@ Needs the Android SDK and JDK 21.
 
 ```sh
 npm install
-cd examples/expo-app
+cd examples/file-toss
 npm install
 npm run apk
 adb install -r android/app/build/outputs/apk/release/app-release.apk
 ```
 
-Install it on both phones. It needs no server or network. The APK is signed with the debug key, so it's for your own devices only.
+The APK is signed with the debug key, so it's for your own devices only. Publishing needs a real signing key. `eas.json` has `preview` and `production` profiles, but they haven't been run, and EAS would also need to build the linked `packages/` first.
 
-To check the permissions, run this after installing. It should list `CAMERA`, and not `WRITE_SETTINGS` or `RECORD_AUDIO`:
+`npm test`, `npm run typecheck` and `npm run lint` need no device. The screen tests run the real screens and hooks in Node, on an in-memory file system in `test/shims.tsx`. `npm run icons` redraws every icon from `scripts/make-icons.py`, and needs `rsvg-convert`.
 
-```sh
-adb shell dumpsys package com.khtdr.tossspike | grep -E 'android.permission.(CAMERA|WRITE_SETTINGS|RECORD_AUDIO)'
-```
+`npx expo-doctor` reports two failures, both expected: `disableHierarchicalLookup` must stay (see `metro.config.js`), and the root's dev copies of Expo packages look like duplicates. Metro never reads those copies. That setting also hides anything nested in `node_modules/*/node_modules`, which is why `@expo/metro-runtime` is a direct dependency here.
 
-## Run a test
+## Check on the phones
 
-1. On one phone, tap **Send**, choose settings, and tap **Start**. Tap the screen to stop.
-2. On the other, tap **Receive** and allow the camera. Hold it so the code fills most of the view.
-3. The run ends by itself when the transfer finishes. Tap **End run** to give up on one that stalls.
-4. For the next run, stop and restart the sender with new settings, then tap **Next run** on the receiver. The receiver needs no settings, because it reads them from the transfer.
-5. When you're done, tap **Share results** and save or send the JSON. With a cable, `adb logcat -s ReactNativeJS | grep TOSS_SPIKE` shows each run too.
+None of this has run on a phone yet. In rough order:
 
-Use the same distance and lighting throughout, or note when they change. Prop the phones up if you can, since a steady hand is hard to repeat.
+1. **Permissions.** This should list `CAMERA`, and none of the others. The About screen promises there's no internet access, so check this before showing it to anyone.
 
-## What to run
+   ```sh
+   adb shell dumpsys package com.khtdr.filetoss | grep -E 'android.permission.(CAMERA|INTERNET|WRITE_SETTINGS|RECORD_AUDIO|SYSTEM_ALERT_WINDOW|VIBRATE|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE)'
+   ```
 
-The sender starts at version 30, level M, 10 fps, 50 KB of JSON. Do these in order.
-
-1. **Hooks work.** Run the default. It should finish with `done` and `verified`.
-2. **Sender keeps up.** Run 50 KB of `noise`, and note `fps shown` and `slots skipped`. The target is about 10 fps with few skips. Symbols are now drawn and parsed during the run, which the earlier spike never measured. Compare the time with its 4.3-8.8 s.
-3. **JSON with compression.** Run 50 KB and 200 KB of `json`, and compare frames and KB/s with `noise`. Rates count the payload's size, so compression should raise them.
-4. **Large payload.** Start 1024 KB of `noise`, then of `json`, and note `started in`. That's how long the screen freezes before sending. Finish at least one run, for the 1 MB timing the file transfer app needs.
-5. **Memory.** Leave a sender running for 10 minutes or more, and run `adb shell dumpsys meminfo com.khtdr.tossspike | grep TOTAL` every minute or so. It should level off.
-6. **Swap the phones**, then repeat step 2.
-
-If time allows, try versions 35 and 40.
-
-## Try the default components
-
-**Components** runs `TossSender` and `TossReceiver` as an app would, at the default settings. Pick a size, tap **Send** on one phone and **Receive** on the other.
-
-- At 1024 KB, the sender should show **Preparing** with a spinner before the first symbol.
-- Move the receiver off the code partway through. **Hold steady** should appear after about 2 seconds.
-- When a run finishes, tap **Receive another**, then **Cancel**. The menu shows `verified` for the last transfer.
-
-## Reading the results
-
-| Field | Meaning |
-|---|---|
-| `payloadBytesPerSecond` | The headline number, for comparison with the README's guess of a few KB/s |
-| `scansPerSecond` | Scanner callbacks per second, including repeats of the same symbol |
-| `captured` | Share of displayed symbols seen. `1 - captured` is the loss |
-| `steps` | Distance between successive frames. One dominant step suggests phase lock, and a spread of small steps suggests random loss |
-| `msTo` | Time to the first header and to 50%, 90% and 100% of the blocks. A long gap from 90% to 100% is the case a fountain code helps |
-| `longestStallMs` | Longest wait between new blocks |
-| `displayValueDiffers` | Times ML Kit's display value differed from its raw value. The app decodes the raw value |
-| `rejected` | Why scans were refused. `bad-crc` or `bad-base45` would mean a scanner returned damaged text |
-| `verified` | The payload matched what the sender should have sent |
-| `hook` | What `useTossReceive` made of the same scans: its status, error, and whether its payload matched. `ScanLog` decodes separately, so the two should agree |
-
-`captured` is an estimate. It assumes the sender kept to its rate, so check `slots skipped` on the sender.
+2. **It starts.** Removing `INTERNET` from a release build should be safe, but nothing has shown that yet.
+3. **A small file, end to end.** Check full brightness without `WRITE_SETTINGS`, the icon, the splash screen and dark mode.
+4. **Save and share.** Try **Save to a folder** and **Share** on a received file, and cancel the folder picker.
+5. **Pause.** Pause each side, then resume. Then kill the receiver mid-transfer with `adb shell am force-stop com.khtdr.filetoss`, reopen it, and point it at the same file. The percentage should come back.
+6. **Resume the sender** from the history after closing the app.
+7. **Estimates.** Send a photo and a text file, and compare the time with the estimate. Real JSON and text are still unmeasured.
+8. **A large file**, 16 MB or more. Nothing above 1 MB has run on a phone. Watch how long **Preparing** takes on the sender, and whether the receiver freezes after the last block: hashing and writing the file block the JS thread, and there's no progress display for that yet.

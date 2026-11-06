@@ -1,26 +1,50 @@
 {
   "expo": {
-    "name": "toss spike",
-    "slug": "toss-spike",
+    "name": "File Toss",
+    "slug": "file-toss",
+    "scheme": "filetoss",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android"],
     "android": {
+      "package": "com.khtdr.filetoss",
+      "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1B1F3B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.khtdr.tossspike"
+      "blockedPermissions": [
+        "android.permission.INTERNET",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "predictiveBackGestureEnabled": false
     },
-    "platforms": [
-      "android"
-    ],
     "plugins": [
-      "expo-toss"
-    ]
+      "expo-router",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "backgroundColor": "#1B1F3B"
+        }
+      ],
+      [
+        "expo-toss",
+        { "cameraPermission": "File Toss uses the camera to read the codes on the other phone's screen." }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
