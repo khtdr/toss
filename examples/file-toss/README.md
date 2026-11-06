@@ -40,7 +40,7 @@ adb install -r android/app/build/outputs/apk/release/app-release.apk
 
 `npm run apk:small` builds `file-toss.apk` here instead, at about 25 MB rather than 170 MB. It's for 64-bit ARM phones only, with its native libraries compressed and unused resources removed.
 
-Both APKs are signed with the debug key, so they're for your own devices only. Publishing needs a real signing key. `eas.json` has `preview` and `production` profiles, but they haven't been run, and EAS would also need to build the linked `packages/` first.
+`file-toss.apk` is signed with the real key, which `scripts/sign-apk.sh` reads from `~/.config/file-toss`, and it goes in a GitHub Release, not in git. `npm run apk` is signed with the debug key, which is public, so that build is for your own devices only. Android won't update one with the other: uninstall first, which deletes the history and any paused transfers. `eas.json` has `preview` and `production` profiles, but they haven't been run, and EAS would also need to build the linked `packages/` first.
 
 `npm test`, `npm run typecheck` and `npm run lint` need no device. The screen tests run the real screens and hooks in Node, on an in-memory file system in `test/shims.tsx`. `npm run icons` remakes every icon from `docs/logo.png` with `scripts/make-icons.py`, and needs Pillow and numpy.
 

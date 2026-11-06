@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# built apps go in GitHub Releases, as each copy would stay in the history
+/file-toss.apk

@@ -48,7 +48,8 @@ As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, a
 - **Privacy:** there's no encryption, so the app says that anyone who can see the screen can read the file.
 - **Received files:** they're untrusted. Filenames are cleaned, sizes capped, and files go to the system's save or share sheet, never opened.
 - **Permissions:** `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and the old storage permissions are blocked in `app.json`. The About screen promises no internet access, so that must stay true.
-- **Publishing:** it still needs a real signing key and a privacy policy. Check Google Play's current testing rules for new personal accounts early. `eas.json` hasn't been run.
+- **Signing:** the real key is in `~/.config/file-toss`, outside the repo, and must never be committed. There's no way to update installed copies without it, so it needs a backup. `npm run apk:small` signs with it. APKs go in GitHub Releases, not in git.
+- **Publishing:** it still needs a privacy policy. Check Google Play's current testing rules for new personal accounts early. `eas.json` hasn't been run.
 
 Not tested yet, in rough order of value:
 
