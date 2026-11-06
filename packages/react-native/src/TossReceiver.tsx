@@ -2,6 +2,7 @@ import { CameraView } from 'expo-camera';
 import { useEffect, useRef } from 'react';
 import { Button, Linking, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { TransferMeta } from 'toss-core';
 import type { ReceiveError, ReceiveOptions } from './receive-session.js';
 import { useTossReceive } from './use-toss-receive.js';
@@ -115,9 +116,9 @@ export function TossReceiver({ onReceive, onCancel, style, ...options }: TossRec
   const senderChanged = receive.otherSessionFrames > 0;
 
   // The panel keeps its height as messages come and go, so the preview doesn't
-  // move while someone is aiming it.
+  // move while someone is aiming it. The preview can run under the status bar.
   return (
-    <View style={[styles.screen, style]}>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={[styles.screen, style]}>
       <CameraView style={styles.camera} {...receive.cameraProps} />
       <View style={styles.panel}>
         <Text style={styles.title}>
@@ -136,7 +137,7 @@ export function TossReceiver({ onReceive, onCancel, style, ...options }: TossRec
           <Button title="Cancel" color="#111" onPress={cancel} />
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

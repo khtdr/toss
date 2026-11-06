@@ -2,6 +2,7 @@ import { CameraView } from 'expo-camera';
 import type { BarcodeScanningResult } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTossReceive } from 'toss-react-native';
 import { verifyPayload } from './run';
 import { ScanLog } from './scan-log';
@@ -80,7 +81,7 @@ export function ReceiveScreen({ onBack }: { onBack: () => void }) {
 
   const { received, total } = receive.progress;
   return (
-    <View style={styles.screen}>
+    <SafeAreaView edges={['bottom']} style={styles.screen}>
       <CameraView
         style={styles.camera}
         zoom={zoom}
@@ -104,7 +105,7 @@ export function ReceiveScreen({ onBack }: { onBack: () => void }) {
         <Button label="Share results" onPress={share} />
         <Button label="Back" onPress={onBack} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

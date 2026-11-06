@@ -31,7 +31,8 @@
     "expo-camera": "*",
     "expo-keep-awake": "*",
     "react": ">=19.0.0",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-safe-area-context": ">=5.0.0"
   },
   "devDependencies": {
     "@shopify/react-native-skia": "2.14.0",
@@ -44,6 +45,7 @@
     "jsqr": "^1.4.0",
     "react": "19.3.0",
     "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
     "react-test-renderer": "19.3.0"
   }
 }

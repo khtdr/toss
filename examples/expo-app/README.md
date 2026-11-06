@@ -45,7 +45,7 @@ If time allows, try versions 35 and 40.
 
 - At 1024 KB, the sender should show **Preparing** with a spinner before the first symbol.
 - Move the receiver off the code partway through. **Hold steady** should appear after about 2 seconds.
-- When a run finishes, **Cancel** or **Back** out to the menu, which shows `verified` for the last transfer.
+- When a run finishes, tap **Receive another**, then **Cancel**. The menu shows `verified` for the last transfer.
 
 ## Reading the results
 

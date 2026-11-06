@@ -33,6 +33,7 @@ vi.mock('@shopify/react-native-skia', () => ({
   Path: 'Path',
   Skia: { Path: { MakeFromSVGString: (path: string) => ({ path }) } },
 }));
+vi.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 vi.mock('expo-camera', () => ({
   CameraView: 'CameraView',
   useCameraPermissions: () => [native.permission, native.requestPermission, async () => {}],
@@ -141,6 +142,13 @@ describe('TossSender', () => {
     expect(find(root, 'Canvas')[0]).toBe(canvas);
   });
 
+  it('keeps its controls clear of the system bars', () => {
+    const root = render(<TossSender {...send} data={noise(3000)} />);
+    layOut(root, 360, 600);
+    advance(0);
+    expect(find(root, 'SafeAreaView')[0]!.findAllByType('Button' as never)).toHaveLength(1);
+  });
+
   it('stops and tells the app', () => {
     const onStop = vi.fn();
     const root = render(<TossSender {...send} data={noise(3000)} onStop={onStop} />);
@@ -220,6 +228,13 @@ describe('TossReceiver', () => {
     const root = render(receiver());
     expect(find(root, 'CameraView')[0]!.props).toMatchObject({ barcodeScannerSettings: { barcodeTypes: ['qr'] } });
     expect(text(root)).toContain("Point the camera at the other phone's code");
+  });
+
+  it('keeps its controls clear of the nav bar, and lets the preview reach the top', () => {
+    const root = render(receiver());
+    const safe = find(root, 'SafeAreaView')[0]!;
+    expect(safe.findAllByType('Button' as never)).toHaveLength(1);
+    expect(safe.props.edges).not.toContain('top');
   });
 
   it('shows progress as blocks arrive', () => {

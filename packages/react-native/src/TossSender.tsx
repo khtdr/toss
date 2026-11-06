@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TossSymbol } from './TossSymbol.js';
 import { useTossSend } from './use-toss-send.js';
 import type { TossSendOptions } from './use-toss-send.js';
@@ -30,7 +31,7 @@ export function TossSender({ data, onStop, style, ...options }: TossSenderProps)
   };
 
   return (
-    <View style={[styles.screen, style]}>
+    <SafeAreaView style={[styles.screen, style]}>
       <View style={styles.stage} onLayout={measure}>
         {send.symbol && room > 0 && <TossSymbol symbol={send.symbol} maxSide={room} />}
         {send.status === 'preparing' && <ActivityIndicator size="large" color="#111" />}
@@ -59,7 +60,7 @@ export function TossSender({ data, onStop, style, ...options }: TossSenderProps)
           </>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

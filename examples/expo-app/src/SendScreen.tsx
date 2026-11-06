@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TossSymbol, useTossSend } from 'toss-react-native';
 import type { ErrorCorrection } from 'toss-qr';
 import { sendOptions, testPayload } from './run';
@@ -54,19 +55,22 @@ export function SendScreen({ onBack }: { onBack: () => void }) {
   if (sending) return <Flasher config={config} onStop={() => setSending(false)} />;
 
   return (
-    <ScrollView contentContainerStyle={styles.form}>
-      <Chips label="QR version" options={VERSIONS} value={version as (typeof VERSIONS)[number]} onChange={setVersion} />
-      <Chips label="Error correction" options={LEVELS} value={errorCorrection} onChange={setLevel} />
-      <Chips label="Frames per second" options={RATES} value={fps as (typeof RATES)[number]} onChange={setFps} />
-      <Chips label="Payload (KB)" options={SIZES_KB} value={sizeKb as (typeof SIZES_KB)[number]} onChange={setSizeKb} />
-      <Chips label="Payload type" options={PAYLOADS} value={payloadType} onChange={setPayloadType} />
-      <Button label="Start" onPress={() => setSending(true)} />
-      <Button label="Back" onPress={onBack} />
-    </ScrollView>
+    <SafeAreaView edges={['bottom']} style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.form}>
+        <Chips label="QR version" options={VERSIONS} value={version as (typeof VERSIONS)[number]} onChange={setVersion} />
+        <Chips label="Error correction" options={LEVELS} value={errorCorrection} onChange={setLevel} />
+        <Chips label="Frames per second" options={RATES} value={fps as (typeof RATES)[number]} onChange={setFps} />
+        <Chips label="Payload (KB)" options={SIZES_KB} value={sizeKb as (typeof SIZES_KB)[number]} onChange={setSizeKb} />
+        <Chips label="Payload type" options={PAYLOADS} value={payloadType} onChange={setPayloadType} />
+        <Button label="Start" onPress={() => setSending(true)} />
+        <Button label="Back" onPress={onBack} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   form: { padding: 16, paddingTop: 48 },
   flash: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   stats: { marginTop: 16, color: '#444', textAlign: 'center', fontSize: 12 },
