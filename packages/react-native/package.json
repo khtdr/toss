@@ -1,0 +1,49 @@
+{
+  "name": "toss-react-native",
+  "version": "0.0.0",
+  "private": true,
+  "description": "React Native bindings for toss: headless send and receive hooks, using expo-camera and Skia.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "npm run build -w toss-core -w toss-qr && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
+    "test": "npm run build -w toss-core -w toss-qr && vitest run"
+  },
+  "dependencies": {
+    "toss-core": "*",
+    "toss-qr": "*"
+  },
+  "peerDependencies": {
+    "@shopify/react-native-skia": ">=2.14.0",
+    "expo-brightness": "*",
+    "expo-camera": "*",
+    "expo-keep-awake": "*",
+    "react": ">=19.0.0",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@shopify/react-native-skia": "2.14.0",
+    "@types/react": "~19.3.0",
+    "@types/react-test-renderer": "^19.3.1",
+    "expo": "~58.0.23",
+    "expo-brightness": "~58.0.2",
+    "expo-camera": "~58.0.14",
+    "expo-keep-awake": "~58.0.3",
+    "jsqr": "^1.4.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-test-renderer": "19.3.0"
+  }
+}

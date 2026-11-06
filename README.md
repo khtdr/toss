@@ -62,6 +62,18 @@ The platform-specific I/O lives here: camera, drawing, keep-awake, brightness.
 - Optional default components: `<TossSender>` and `<TossReceiver>`
 - Apps control their own confirmation and UI; components are a convenience
 
+```tsx
+// Pass null until the app is ready to send. Keep `data` stable between renders.
+const send = useTossSend(data, { mime: 'application/json', kind: 'theme' })
+send.symbol && <TossSymbol symbol={send.symbol} />
+
+const receive = useTossReceive({ maxPayloadBytes: 1024 * 1024 })
+<CameraView style={{ flex: 1 }} {...receive.cameraProps} />
+// receive.status, .progress, .stalledMs, then .payload and .meta. Both are untrusted.
+```
+
+`SendSession` and `ReceiveSession` hold the logic and take the clock as an argument, so tests need no device. The hooks connect them to the platform. Each new symbol goes straight to `TossSymbol`, so the calling screen doesn't re-render at the frame rate.
+
 ### 4. `expo-toss`: packaging
 
 Thin by design. Peer-depends on `expo-camera`, adds a config plugin for permission strings, and re-exports the layer 3 API as one import.
@@ -127,7 +139,7 @@ toss/
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
-5. `toss-react-native`: hooks, then default components
+5. `toss-react-native`: hooks, then default components. Hooks written, not yet run on a device
 6. `expo-toss`: config plugin + packaging
 7. Wire into a real app: a small published file transfer app, replacing the spike in `examples/expo-app`. It's both a utility and a proof of concept
 

@@ -30,14 +30,17 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Where things stand
 
-As of 2026-11-05, the device spike is finished. Its results are in `docs/qr.md`, section 4. **Next is `toss-react-native`.**
+As of 2026-11-05, the device spike is finished, with results in `docs/qr.md`, section 4. `toss-react-native` has its headless hooks and `TossSymbol`, tested in Node and bundled with Metro, but **not yet run on a phone. Do that next**, then build the default components.
 
-Carry these into that layer:
+Check these on the phones first:
 
-- Build the headless hooks first (`useTossSend`, `useTossReceive`), using `expo-camera` and Skia.
-- Default to version 30, level M, 10 fps, mask 0, all configurable.
-- Draw symbols while sending, not all up front. Mask 0 takes 22-35 ms per v30 symbol on the test phones, against the 100 ms that 10 fps allows.
-- Show live progress and ask people to hold steady. A good hand-held session reaches 9-11 KB/s, but a poor one can be several times slower.
+- Whether the sender holds 10 fps. The spike parsed every Skia path up front, and `TossSymbol` parses one per symbol, so that cost is unmeasured. Watch `stats.shownFps` and `stats.skippedSlots`.
+- Memory in a long session. Each symbol makes a new Skia path, which the spike didn't do.
+
+Carry these into the default components:
+
+- Show live progress and ask people to hold steady, using `stalledMs`. A good hand-held session reaches 9-11 KB/s, but a poor one can be several times slower.
+- `examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
 
 After that layer comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
 
