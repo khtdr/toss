@@ -12,6 +12,17 @@ The order from here: make the library useful to app developers, with File Toss a
 8. Publish `toss-core`, `toss-qr`, `toss-react-native` and `expo-toss` to npm. Each needs a real version in place of `0.0.0`, and `private` removed. `toss-qr` also needs the full MIT text in its vendored `qrcode-generator` file. `toss-cli` can probably stay private. Not started
 9. Desktop builds of File Toss for Mac, Linux and Windows, so files can move between phones and computers. Deno Desktop bundles the TypeScript into a standalone executable, which would likely use `toss-web`. Not started
 
+## File Toss as a universal receiver
+
+Any app with toss built in can send a file to File Toss, by setting `kind` to `file-toss/1:` plus the percent-encoded filename. So an app can offer "share as CSV" with no receiving side of its own, and the person receiving saves the file wherever their own workflow needs it. File Toss stays general purpose, with no knowledge of the app. Nothing goes through a network or anyone's cloud.
+
+The motivating case is a mood tracking app whose client shares a CSV with a therapist or a loved one. These come after the npm publishing, and none has been started:
+
+1. Document the `file-toss/1:` label as a public format, and consider a helper such as `fileKind(name)`, so that apps don't build the string by hand. Try it on the phones from a second app, which hasn't been done yet.
+2. Let File Toss appear in the system share sheet, for apps without toss built in.
+3. Add a "delete after saving" option. Received files stay in File Toss, unencrypted, until they're removed.
+4. Add optional passphrase encryption, as a shared package, so that any sending app and File Toss use the same scheme. It can wrap the payload with no change to the wire format, but it needs a key derivation benchmark on Hermes first, and sensitive labels like the filename have to move inside the encrypted part.
+
 ## Known risks
 
 - **Throughput is camera- and display-limited, not protocol-limited.** Hand-held at version 30, level M, 10 fps, incompressible data moves at 4-9 KB/s, and compressible JSON several times faster. See [`qr.md`, section 4](qr.md#4-device-spike-results).

@@ -49,6 +49,7 @@ As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, a
 - **Received files:** they're untrusted. Filenames are cleaned, sizes capped, and files go to the system's save or share sheet, never opened.
 - **Permissions:** `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and the old storage permissions are blocked in `app.json`. The About screen promises no internet access, so that must stay true.
 - **Signing:** the real key is in `~/.config/file-toss`, outside the repo, and must never be committed. There's no way to update installed copies without it, so it needs a backup. `npm run apk:small` signs with it. APKs go in GitHub Releases, not in git.
+- **Universal receiver:** the owner wants File Toss to stay general purpose, so other apps can send it files with the `file-toss/1:` label and the person receiving decides what happens next. `kindToName` and `nameToKind` are therefore becoming a public format. Don't change them casually. See `docs/roadmap.md`.
 - **Publishing:** it still needs a privacy policy. Check Google Play's current testing rules for new personal accounts early. `eas.json` hasn't been run.
 
 Not tested yet, in rough order of value:
