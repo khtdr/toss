@@ -2,6 +2,7 @@
   "name": "expo-toss",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Expo packaging for toss: a config plugin for permissions, and the toss-react-native API in one import.",
   "type": "module",
   "sideEffects": false,

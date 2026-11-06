@@ -43,5 +43,6 @@
     "apk": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease",
     "apk:small": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -Pexpo.useLegacyPackaging=true -Pandroid.enableShrinkResourcesInReleaseBuilds=true && cd .. && sh scripts/sign-apk.sh"
   },
-  "private": true
+  "private": true,
+  "license": "MIT"
 }

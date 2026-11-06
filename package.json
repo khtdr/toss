@@ -1,6 +1,7 @@
 {
   "name": "toss-monorepo",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*"

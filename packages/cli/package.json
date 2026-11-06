@@ -2,6 +2,7 @@
   "name": "toss-cli",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Encode a file to QR PNG frames and decode them back.",
   "type": "module",
   "bin": {
