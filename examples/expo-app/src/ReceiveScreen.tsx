@@ -1,12 +1,19 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useKeepAwake } from 'expo-keep-awake';
+import { CameraView } from 'expo-camera';
+import type { BarcodeScanningResult } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useTossReceive } from 'toss-react-native';
+import { verifyPayload } from './run';
 import { ScanLog } from './scan-log';
-import type { ScannerCheck, Summary } from './scan-log';
+import type { Summary } from './scan-log';
 import { Button, Chips } from './ui';
 
 const ZOOMS = [0, 0.1, 0.2, 0.3] as const;
+
+/** A run's `ScanLog` figures, plus what the hook made of the same scans. */
+interface Run extends Summary {
+  hook: { status: string; error: string | null; verified: boolean | null };
+}
 
 function device() {
   const constants = Platform.constants as unknown as { Model?: string; Release?: string };
@@ -14,88 +21,86 @@ function device() {
   return { model: constants.Model, android: constants.Release, hermes };
 }
 
-function line(summary: Summary): string {
-  const rate = summary.payloadBytesPerSecond;
-  const seconds = (summary.elapsedMs / 1000).toFixed(1);
+function line(run: Run): string {
+  const rate = run.payloadBytesPerSecond;
+  const seconds = (run.elapsedMs / 1000).toFixed(1);
   const speed = rate === null ? '' : `, ${(rate / 1024).toFixed(2)} KB/s`;
-  return `${summary.run}: ${summary.status} in ${seconds} s${speed}, ${summary.scansPerSecond.toFixed(1)} scans/s`;
+  const verified = run.hook.verified === null ? '' : run.hook.verified ? ', verified' : ', NOT VERIFIED';
+  return `${run.run}: ${run.hook.status} in ${seconds} s${speed}, ${run.blocks.total ?? '?'} frames, ${run.scansPerSecond.toFixed(1)} scans/s${verified}`;
 }
 
 export function ReceiveScreen({ onBack }: { onBack: () => void }) {
-  useKeepAwake();
-  const [permission, requestPermission] = useCameraPermissions();
-  const [runs, setRuns] = useState<Summary[]>([]);
+  const receive = useTossReceive();
+  const [runs, setRuns] = useState<Run[]>([]);
   const [zoom, setZoom] = useState<number>(0);
-  const [, redraw] = useState(0);
   const log = useRef(new ScanLog());
-  // Each run gets a new log, and this result has to outlive them.
-  const lastCheck = useRef<ScannerCheck | undefined>(undefined);
-
-  useEffect(() => {
-    const timer = setInterval(() => redraw((n) => n + 1), 250);
-    return () => clearInterval(timer);
-  }, []);
 
   const finishRun = () => {
     const summary = log.current.summary();
-    if (summary.scans > 0) {
-      setRuns((all) => [...all, summary]);
-      console.log(`TOSS_SPIKE ${JSON.stringify({ device: device(), summary })}`);
-    }
     log.current = new ScanLog();
+    if (summary.scans === 0) return;
+    const { status, error, meta, payload } = receive;
+    const verified = payload && meta ? verifyPayload(meta.kind, payload) : null;
+    const run: Run = { ...summary, hook: { status, error: error ?? null, verified } };
+    setRuns((all) => [...all, run]);
+    console.log(`TOSS_SPIKE ${JSON.stringify({ device: device(), run })}`);
   };
 
-  const onScan = ({ data, raw }: { data: string; raw?: string }) => {
-    const value = raw === undefined || raw === 'null' ? data : raw;
-    const wasFinished = log.current.finished;
-    log.current.push(value, data, performance.now());
-    lastCheck.current = log.current.check ?? lastCheck.current;
-    if (!wasFinished && log.current.finished) finishRun();
+  const finished = receive.status === 'done' || receive.status === 'failed';
+  useEffect(() => {
+    if (finished) finishRun();
+    // Runs once per finish. `finishRun` reads the render that finished.
+  }, [finished]);
+
+  const endRun = () => {
+    if (!finished) finishRun();
+    receive.reset();
+  };
+
+  const { onBarcodeScanned } = receive.cameraProps;
+  const onScan = (result: BarcodeScanningResult) => {
+    const raw = result.raw === undefined || result.raw === 'null' ? result.data : result.raw;
+    log.current.push(raw, result.data, performance.now());
+    onBarcodeScanned?.(result);
   };
 
   const share = () => {
-    Share.share({ message: JSON.stringify({ device: device(), check: lastCheck.current, runs }, null, 1) });
+    Share.share({ message: JSON.stringify({ device: device(), runs }, null, 1) });
   };
 
-  if (!permission) return <View />;
-  if (!permission.granted) {
+  if (!receive.permission) return <View />;
+  if (!receive.permission.granted) {
     return (
       <View style={styles.center}>
-        <Button label="Allow camera" onPress={requestPermission} />
+        <Button label="Allow camera" onPress={receive.requestPermission} />
         <Button label="Back" onPress={onBack} />
       </View>
     );
   }
 
-  const { received, total } = log.current.progress;
-  const live = log.current.summary();
-  const check = lastCheck.current;
+  const { received, total } = receive.progress;
   return (
     <View style={styles.screen}>
       <CameraView
         style={styles.camera}
-        facing="back"
         zoom={zoom}
-        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        onBarcodeScanned={onScan}
+        {...receive.cameraProps}
+        onBarcodeScanned={onBarcodeScanned ? onScan : undefined}
       />
       <ScrollView style={styles.panel}>
         <Text style={styles.big}>
-          {received} of {total ?? '?'} blocks, {live.scansPerSecond.toFixed(1)} scans/s
+          {receive.status}: {received} of {total ?? '?'} blocks, {receive.scansPerSecond.toFixed(1)} scans/s
         </Text>
         <Text>
-          {live.run}, rejected {JSON.stringify(live.rejected)}
+          {receive.meta?.kind ?? 'no header yet'}, stalled {(receive.stalledMs / 1000).toFixed(1)} s, rejected{' '}
+          {receive.rejectedScans}, other session {receive.otherSessionFrames}
+          {receive.error ? `, ${receive.error}` : ''}
         </Text>
-        {check && (
-          <Text>
-            Scanner check {check.exact ? 'exact' : 'CHANGED'}: {check.received}
-          </Text>
-        )}
         {runs.map((run, i) => (
           <Text key={i}>{line(run)}</Text>
         ))}
         <Chips label="Zoom" options={ZOOMS} value={zoom as (typeof ZOOMS)[number]} onChange={setZoom} />
-        <Button label="End run" onPress={finishRun} />
+        <Button label={finished ? 'Next run' : 'End run'} onPress={endRun} />
         <Button label="Share results" onPress={share} />
         <Button label="Back" onPress={onBack} />
       </ScrollView>

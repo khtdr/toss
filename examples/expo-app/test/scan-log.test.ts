@@ -1,7 +1,7 @@
-import { frameToText, textToMatrix } from 'toss-qr';
+import { Encoder } from 'toss-core';
+import { frameToText, maxFrameBytes } from 'toss-qr';
 import { describe, expect, it } from 'vitest';
-import { encoderFor, matrixToPath, prepare } from '../src/prepare';
-import { CHECK_TEXT, parseKind, runKind, testPayload } from '../src/run';
+import { parseKind, runKind, sendOptions, testPayload, verifyPayload } from '../src/run';
 import type { RunConfig } from '../src/run';
 import { ScanLog } from '../src/scan-log';
 
@@ -10,9 +10,13 @@ const config: RunConfig = {
   errorCorrection: 'M',
   fps: 10,
   payloadBytes: 4000,
-  renderer: 'svg',
-  mask: 'best',
+  payloadType: 'noise',
 };
+
+function encoderFor(run: RunConfig): Encoder {
+  const { mime, kind } = sendOptions(run);
+  return new Encoder(testPayload(run.payloadBytes, run.payloadType), { maxFrameBytes: maxFrameBytes(run), mime, kind });
+}
 
 /** Scans a looping sender every `period` slots, 100 ms per slot. */
 function capture(period: number, drop: (t: number) => boolean = () => false, limit = 5000) {
@@ -37,34 +41,32 @@ describe('run labels', () => {
   });
 
   it('is deterministic and incompressible enough', () => {
-    expect(testPayload(64)).toEqual(testPayload(64));
-    expect(new Set(testPayload(4096)).size).toBeGreaterThan(200);
+    expect(testPayload(64, 'noise')).toEqual(testPayload(64, 'noise'));
+    expect(new Set(testPayload(4096, 'noise')).size).toBeGreaterThan(200);
   });
 });
 
-describe('matrixToPath', () => {
-  it('merges runs and offsets by the quiet zone', () => {
-    const modules = Uint8Array.of(1, 1, 0, 0, 0, 0, 0, 0, 1);
-    expect(matrixToPath({ size: 3, modules })).toBe('M4 4h2v1h-2zM6 6h1v1h-1z');
+describe('JSON payloads', () => {
+  const text = (bytes: Uint8Array) => String.fromCharCode(...bytes);
+
+  it('are valid JSON of exactly the size asked for', () => {
+    for (const length of [2, 300, 5000, 5001]) {
+      const payload = testPayload(length, 'json');
+      expect(payload).toHaveLength(length);
+      expect(Array.isArray(JSON.parse(text(payload)))).toBe(true);
+    }
   });
 
-  it('covers every dark module exactly once', () => {
-    const matrix = textToMatrix('TOSS', { version: 1, errorCorrection: 'M' });
-    const covered = [...matrixToPath(matrix).matchAll(/h(\d+)v1/g)].reduce(
-      (sum, match) => sum + Number(match[1]),
-      0,
-    );
-    expect(covered).toBe(matrix.modules.reduce((sum, m) => sum + m, 0));
+  it('compress, so a run needs far fewer frames than noise', () => {
+    const json = { ...config, payloadBytes: 20_000, payloadType: 'json' as const };
+    const noise = { ...json, payloadType: 'noise' as const };
+    expect(encoderFor(json).frameCount).toBeLessThan(encoderFor(noise).frameCount / 2);
   });
-});
 
-describe('prepare', () => {
-  it('draws one path per slot, and reports the symbol size', async () => {
-    let clock = 0;
-    const prepared = await prepare(config, () => {}, () => (clock += 2));
-    expect(prepared.paths).toHaveLength(encoderFor(config).cycleLength);
-    expect(prepared.modules).toBe(17 + 4 * 10 + 8);
-    expect(prepared.drawMs.mean).toBe(2);
+  it('verify against their own type only', () => {
+    const kind = runKind({ ...config, payloadType: 'json' });
+    expect(verifyPayload(kind, testPayload(500, 'json'))).toBe(true);
+    expect(verifyPayload(kind, testPayload(500, 'noise'))).toBe(false);
   });
 });
 
@@ -142,16 +144,5 @@ describe('ScanLog', () => {
     const summary = capture(1, () => false, 8).summary();
     expect(summary).toMatchObject({ status: 'incomplete', payloadBytesPerSecond: null, verified: null });
     expect(summary.msTo.all).toBeNull();
-  });
-
-  it('records whether the check text survived exactly', () => {
-    const exact = new ScanLog();
-    exact.push(CHECK_TEXT, CHECK_TEXT, 0);
-    expect(exact.check?.exact).toBe(true);
-
-    const trimmed = new ScanLog();
-    trimmed.push(CHECK_TEXT.trim(), CHECK_TEXT.trim(), 0);
-    expect(trimmed.check?.exact).toBe(false);
-    expect(trimmed.summary().rejected).toEqual({});
   });
 });

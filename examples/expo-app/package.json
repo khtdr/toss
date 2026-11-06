@@ -11,9 +11,9 @@
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
     "react-native": "0.88.1",
-    "react-native-svg": "15.16.0",
     "toss-core": "file:../../packages/core",
-    "toss-qr": "file:../../packages/qr"
+    "toss-qr": "file:../../packages/qr",
+    "toss-react-native": "file:../../packages/react-native"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",

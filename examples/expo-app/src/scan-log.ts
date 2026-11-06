@@ -1,19 +1,12 @@
 import { Decoder } from 'toss-core';
 import type { Progress } from 'toss-core';
 import { textToFrame } from 'toss-qr';
-import { CHECK_TEXT, parseKind, testPayload } from './run';
+import { parseKind, verifyPayload } from './run';
 
 const HEADER_TAG = 0x10;
 const DATA_TAG = 0x11;
 /** Bytes are `tag, session(4), index(4)`. See docs/protocol.md, section 6. */
 const INDEX_OFFSET = 5;
-
-export interface ScannerCheck {
-  /** The scanner's text matched exactly. */
-  exact: boolean;
-  /** The text as received, in JSON quotes so spaces show. */
-  received: string;
-}
 
 export interface Summary {
   run: string;
@@ -77,7 +70,6 @@ export class ScanLog {
   private failed = false;
 
   progress: Progress = { received: 0, total: null };
-  check: ScannerCheck | undefined;
 
   get finished(): boolean {
     return this.payload !== undefined || this.failed;
@@ -88,11 +80,6 @@ export class ScanLog {
     this.scans++;
     this.lastAt = at;
     if (raw !== data) this.displayValueDiffers++;
-
-    if (raw.trim() === CHECK_TEXT.trim()) {
-      this.check = { exact: raw === CHECK_TEXT, received: JSON.stringify(raw) };
-      return;
-    }
 
     const changed = raw !== this.lastText;
     this.lastText = raw;
@@ -178,7 +165,7 @@ export class ScanLog {
       blocks: { received: this.progress.received, total: this.progress.total },
       repeatedBlocks: this.repeatedBlocks,
       payloadBytesPerSecond: payload && seconds > 0 ? payload.length / seconds : null,
-      verified: payload ? matches(payload, testPayload(payload.length)) : null,
+      verified: payload && this.kind !== undefined ? verifyPayload(this.kind, payload) : null,
       msTo: this.milestones(this.progress.total),
       longestStallMs: this.longestStall(),
       steps: this.stepCounts(this.progress.total),
@@ -187,8 +174,4 @@ export class ScanLog {
       otherSessionFrames: this.otherSessionFrames,
     };
   }
-}
-
-function matches(a: Uint8Array, b: Uint8Array): boolean {
-  return a.length === b.length && a.every((byte, i) => byte === b[i]);
 }

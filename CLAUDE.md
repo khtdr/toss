@@ -30,7 +30,7 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Where things stand
 
-As of 2026-11-05, the device spike is finished, with results in `docs/qr.md`, section 4. `toss-react-native` has its headless hooks and `TossSymbol`, tested in Node and bundled with Metro, but **not yet run on a phone. Do that next**, then build the default components.
+As of 2026-11-05, the device spike is finished, with results in `docs/qr.md`, section 4. `toss-react-native` has its headless hooks and `TossSymbol`, tested in Node and bundled with Metro, but **not yet run on a phone. Do that next**, then build the default components. The spike in `examples/expo-app` now runs on the hooks, and its README lists the runs to do.
 
 Check these on the phones first:
 
