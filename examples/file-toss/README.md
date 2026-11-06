@@ -46,7 +46,7 @@ The APK is signed with the debug key, so it's for your own devices only. Publish
 
 ## Check on the phones
 
-None of this has run on a phone yet. In rough order:
+Checked on the phones on 2026-11-06: items 1 to 7 passed. For item 1, `aapt dump permissions` on the release APK lists `CAMERA`, `ACCESS_NETWORK_STATE` and the app's own `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, with no `INTERNET`. For items 5 and 6, both phones were force-stopped mid-transfer and picked up where they left off. Item 8 is still to do. In rough order:
 
 1. **Permissions.** This should list `CAMERA`, and none of the others. The About screen promises there's no internet access, so check this before showing it to anyone.
 
@@ -59,5 +59,5 @@ None of this has run on a phone yet. In rough order:
 4. **Save and share.** Try **Save to a folder** and **Share** on a received file, and cancel the folder picker.
 5. **Pause.** Pause each side, then resume. Then kill the receiver mid-transfer with `adb shell am force-stop com.khtdr.filetoss`, reopen it, and point it at the same file. The percentage should come back.
 6. **Resume the sender** from the history after closing the app.
-7. **Estimates.** Send a photo and a text file, and compare the time with the estimate. Real JSON and text are still unmeasured.
+7. **Estimates.** Send a photo and a text file, and compare the time with the estimate. Real app JSON is still unmeasured.
 8. **A large file**, 16 MB or more. Nothing above 1 MB has run on a phone. Watch how long **Preparing** takes on the sender, and whether the receiver freezes after the last block: hashing and writing the file block the JS thread, and there's no progress display for that yet.
