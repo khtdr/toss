@@ -17,18 +17,20 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 - Layer 3 exposes headless hooks first (`useTossSend`, `useTossReceive`), default components second. Apps handle their own confirmation UI.
 - Layer 4 stays thin: peer deps, config plugin, permission strings, re-exports.
 - **Frame format:** `docs/protocol.md` is approved. Change it only with the owner's agreement.
-- **Redundancy:** plain looping with a prime-length cycle for v1. Fountain codes are deferred until the device spike; the considerations are in `docs/protocol.md`, Appendix B.
+- **Redundancy:** plain looping with a prime-length cycle for v1. After the device spike, the owner chose not to add a fountain code for now: apps mostly send JSON, which compresses well, and short loops make misses cheap. The considerations are in `docs/protocol.md`, Appendix B.
 - **Session ID:** derived from header content, so the encoder stays deterministic and needs no RNG.
 - **Compression:** on by default, kept only if smaller, `compress: false` to opt out. Raw DEFLATE via `fflate`, a direct dependency of `toss-core`.
 - **Text codec:** owned by the carrier layer. Core handles raw bytes only.
 - **Workspaces:** npm.
 - **QR carrier:** `docs/qr.md`. Frame text is `T` plus base45, in one alphanumeric segment, at one fixed version per transfer. The `T` keeps the text from starting with a space. `toss-qr` encodes symbols with `qrcode-generator`.
 - **CLI:** `toss-cli` draws frames through `toss-qr`. Scanning PNGs with `jsqr` and `pngjs` stays in the CLI, since a device's camera does that job.
+- **Device layer:** `expo-camera` for scanning and Skia for drawing, chosen from the spike results in `docs/qr.md`, section 4.
+- **Default settings:** version 30, level M, 10 fps, as a configurable default in the React Native layer. Apps' payload sizes vary, so don't hard-code them.
 - Package names (checked on npm, available): `toss-core`, `toss-qr`, `toss-react-native`, `expo-toss`. Bare `toss` is taken.
 
 ## Open (don't silently decide)
 
-See "Open questions" in the README: whether to add a fountain code after the spike, camera lib, QR drawing lib, and encryption. Present a recommendation and let the owner choose.
+See "Open questions" in the README: encryption. Present a recommendation and let the owner choose.
 
 ## Build order
 

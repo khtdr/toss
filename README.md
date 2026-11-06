@@ -41,7 +41,7 @@ dec.push(frame)          // -> { progress, done?, payload?, meta? }
 - **Header frame:** version, session ID, mime type, `kind`, total size, frame count, payload hash, compression flag.
 - **Data frames:** session ID, index, payload, per-frame CRC.
 - **Robustness:** tolerates duplicates, out-of-order frames, and joining mid-loop. Session ID keeps two senders from mixing.
-- **Pluggable redundancy:** plain looping indexed frames, with a prime-length cycle so a phase-locked camera can't miss frames forever. The format leaves room for a fountain code, to be decided after the device spike. See `docs/protocol.md`, Appendix B.
+- **Pluggable redundancy:** plain looping indexed frames, with a prime-length cycle so a phase-locked camera can't miss frames forever. The format leaves room for a fountain code, which the device spike didn't justify for now. See `docs/protocol.md`, Appendix B.
 - **Untrusted input:** size and frame-count caps enforced before allocating.
 
 ### 2. `toss-qr`: carrier
@@ -101,7 +101,7 @@ toss/
     react-native/      toss-react-native
     expo/              expo-toss
   examples/
-    expo-app/          minimal app: send + receive
+    expo-app/          throwaway Android spike for now, later a minimal send + receive app
   docs/
     protocol.md        frame format spec
     qr.md              QR carrier spec
@@ -109,17 +109,14 @@ toss/
 
 ## Known risks
 
-- **Throughput is camera- and display-limited, not protocol-limited.** Rough guess: ~0.5-1 KB per frame at 5-10 fps, so a few KB/s at best. Great for themes and configs, painful past a few hundred KB.
+- **Throughput is camera- and display-limited, not protocol-limited.** The device spike measured about 9 KB/s hand-held at version 30, level M, 10 fps, plus time to draw the symbols first. See `docs/qr.md`, section 4.
 - **Do an early device spike** of the camera + display path to find real frame size and rate. It's the one thing unit tests can't cover.
 - Screen-to-camera issues: glare, moire, exposure. Max brightness and keep-awake on the sender help.
 - No back-channel: the sender can't know the receiver finished, so it loops until dismissed.
-- Display and camera can phase-lock, so a capture rhythm misses the same frames every loop. The sender's prime-length cycle handles this in simulation, but the spike should confirm it.
+- Display and camera can phase-lock, so a capture rhythm misses the same frames every loop. The sender's prime-length cycle handles this in simulation, and the device spike saw random-looking loss, not repeated misses.
 
 ## Open questions
 
-- Add a fountain code after v1? Depends on the loss measured in the device spike. See `docs/protocol.md`, Appendix B.
-- Camera library: `expo-camera` scanning vs. `react-native-vision-camera`?
-- QR drawing: `react-native-svg` vs. Skia?
 - Optional encryption (shared passphrase)? Currently out of scope. Anyone who can see the screen can read it.
 
 ## Roadmap
@@ -127,7 +124,7 @@ toss/
 1. `toss-core`: frame format, encoder/decoder, tests with simulated loss/duplication/reordering
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
-4. Device spike: measure real camera/display throughput
+4. Device spike: measure real camera/display throughput, using `examples/expo-app`
 5. `toss-react-native`: hooks, then default components
 6. `expo-toss`: config plugin + packaging
 7. Wire into a real app

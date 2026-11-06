@@ -1,0 +1,30 @@
+{
+  "name": "toss-spike",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@shopify/react-native-skia": "2.14.0",
+    "expo": "~58.0.23",
+    "expo-brightness": "~58.0.2",
+    "expo-camera": "~58.0.14",
+    "expo-keep-awake": "~58.0.3",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-svg": "15.16.0",
+    "toss-core": "file:../../packages/core",
+    "toss-qr": "file:../../packages/qr"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "test": "../../node_modules/.bin/vitest run",
+    "apk": "npm --prefix ../.. run build && expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease"
+  },
+  "private": true
+}

@@ -61,8 +61,17 @@ Renderers must leave `QUIET_ZONE_MODULES` (4) of white on every side. A matrix d
 
 The smallest symbols return a size that can't hold a toss header, and `Encoder` throws for those.
 
-## 4. Left to the device spike
+## 4. Device spike results
 
-- **Default version and level.** There's deliberately no default config, because the right trade-off between frame size and scan reliability can only be measured.
-- **Render cost.** Laying out a symbol takes about 8 ms at version 10, 26 ms at version 20, and 77 ms at version 40 in Node. Hermes will be slower and is unmeasured. A plain loop repeats its frames, so a sender can render the cycle once. That cost grows with the cycle, so the spike should also measure startup time and memory.
-- **Scanner behaviour.** `jsQR` and `zbar` keep spaces and every other alphanumeric character. Native camera scanners haven't been tested.
+Measured with `examples/expo-app` on a Galaxy S21 and a Pixel 10 Pro, using expo-camera and a hand-held receiver. Each setting has only a few runs, and times vary a lot between runs. Every completed run verified, and no scan was rejected.
+
+- **Rate.** At v10-M, 10 fps gave the best result, with 99% of symbols captured. Capture fell to 87% at 12 fps and 78% at 15 fps. The Pixel sustained about 15 scans/s and the S21 about 25, so this limit depends on the receiver.
+- **Version.** Larger symbols won clearly, and scan rate barely changed with size. v30-M moved 50 KB in 4.3-8.8 s, about 8.9 KB/s on average. v10-M took 42 s. Nothing above v30 has been tested.
+- **Level.** M beat L at v30. L carries more per symbol but missed more. Both Q runs were far worse, but they ran last, so that result isn't reliable.
+- **Renderer.** Skia averaged about 8.9 KB/s and `react-native-svg` about 5.3 KB/s, from S21 sender runs at v30-M. The S21 held 10 fps with no skipped slots on a Skia run. SVG's sender figures weren't recorded.
+- **Direction.** Pixel to S21 matched S21 to Pixel, at 4.2 and 5.3 s for 50 KB.
+- **Large transfers.** 200 KB took 33-38 s at v30-M, with 87% of symbols captured. One clean pass would take about 17 s.
+- **Render cost.** Preparing a v30 symbol took 237 ms on the S21 and 146 ms on the Pixel, so 200 KB needed 39.5 s on the S21 before the first symbol appeared. In Node, `qrcode-generator` spends about 94% of its time choosing a mask: about 35 ms per symbol, against about 2 ms with a fixed mask. That hasn't been measured on Hermes, and the effect of a fixed mask on scanning is untested.
+- **Scanner behaviour.** ML Kit kept the check text's leading and trailing spaces, and its display value never differed from its raw value. `jsQR` and `zbar` also keep spaces and every other alphanumeric character.
+
+There's still deliberately no default config in this package. v30-M at 10 fps is the best setting measured, and the choice belongs with the React Native layer.
