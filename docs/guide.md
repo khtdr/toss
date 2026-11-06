@@ -5,6 +5,7 @@ This guide assumes you've followed the [quick start](../README.md#quick-start). 
 - [Components or hooks](#components-or-hooks)
 - [Describing your data](#describing-your-data)
 - [Handling received data](#handling-received-data)
+- [Sensitive data](#sensitive-data)
 - [Ending a transfer](#ending-a-transfer)
 - [Building your own UI](#building-your-own-ui)
 - [Pausing and resuming](#pausing-and-resuming)
@@ -42,7 +43,28 @@ Everything received is untrusted, including `meta`. Any screen can show a toss t
 
 `onReceive` runs once per finished transfer. `TossReceiver` then shows **Receive another**, so to leave the screen, navigate away from inside `onReceive`.
 
-toss has no encryption. If the data is private, encrypt it before sending and share the key some other way.
+## Sensitive data
+
+toss sends nothing over a network and saves nothing to disk, which removes a lot of risk, but not all of it. Everything else is up to your app.
+
+**On screen.** A transfer isn't encrypted, so anyone who can see or film the screen can read it, including a security camera in the background. For private data, encrypt before sending:
+
+- Compress first, then encrypt, then pass `compress: false`, because encrypted data won't compress.
+- `mime`, `kind` and the size stay readable in every header, so keep them generic. Put anything revealing, like a name in a filename, inside the encrypted data.
+- Resuming needs identical bytes, so an interrupted transfer has to send the same encrypted data again. Keep it, or keep the salt and nonce, until the transfer's finished.
+- A passphrase can be guessed offline by anyone who recorded the transfer, for as long as they like. Use a slow key derivation like Argon2 or scrypt, and prefer a long generated phrase to one people make up. Measure it on a real phone, as it can be slow in JavaScript.
+
+If the same two people share data repeatedly, a one-time pairing avoids passphrases altogether. Each phone tosses its public key to the other in person. After that, the sender encrypts to the receiver's key and signs with its own, which also proves which device the data came from.
+
+**At rest.** A received payload is only in memory until your app does something with it, so storing it safely is your app's job. If the data needs protecting, encrypt it before saving.
+
+Frames you keep from `onFrame` count too. They're pieces of the transfer, as readable as the transfer itself. If a transfer takes only a few seconds, the simplest answer is not to keep them, and to start again if it's interrupted.
+
+**Backups.** Android backup and iCloud can copy your app's files to the cloud without anyone noticing, which breaks a promise that data never leaves the device. On Android, set `android.allowBackup` to `false` in `app.json`, as File Toss does. On iOS, exclude those files from backup. Check the result on a real device.
+
+**Other code in your app.** Analytics and crash reporting can pick up whatever they can see, so keep payloads out of logs and error reports. Saving through the system's share sheet hands the data to another app, and your app's promises stop there.
+
+**Health and other regulated data.** Rules like HIPAA depend on who's handling the data and how, not just on the transfer, and an app can't be compliant on its own. Get legal advice for your case.
 
 ## Ending a transfer
 
