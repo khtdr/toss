@@ -77,4 +77,21 @@ Measured with `examples/expo-app` on a Galaxy S21 and a Pixel 10 Pro, using expo
 - **Mask.** In four alternating runs, mask 0 averaged 13.2 s and the searched mask 18.1 s, with very wide spread, so there's no measurable scanning cost. Only mask 0 has been tested. Those runs were all slow, at 5-12 scans/s, so conditions matter more than the mask, and a poor session can be several times slower than a good one.
 - **Scanner behaviour.** ML Kit kept the check text's leading and trailing spaces, and its display value never differed from its raw value. `jsQR` and `zbar` also keep spaces and every other alphanumeric character.
 
+### Hook runs
+
+Measured with the `toss-react-native` hooks at v30-M, 10 fps and mask 0, with the S21 sending to the Pixel, hand-held. Symbols were drawn and parsed while sending. Each setting has only a few runs. Every run verified, and no scan was rejected.
+
+| Payload | Frames | Time | Speed |
+|---|---|---|---|
+| 50 KB JSON | 8 | 1.9 s | 26.6 KB/s |
+| 200 KB JSON | 27 | 5.7 s | 34.8 KB/s |
+| 50 KB noise, 3 runs | 39 | 8.3-12.0 s | 4.2-6.0 KB/s |
+| 1 MB noise | 798 | 4 min 15 s | 4.0 KB/s |
+
+- **Sender.** The S21 held 10 fps with no new skipped slots while watched for a few minutes. `shownFps` and `skippedSlots` count time in the background, so an interrupted run looks slower than it was.
+- **Startup.** 1 MB of noise took 0.7-0.9 s before the first symbol. 1 MB of JSON hasn't been run.
+- **Memory.** Over a 20-minute 1 MB run on the S21, with 11 minutes uninterrupted, total memory stayed at 148-155 MB, and Graphics levelled off at 58.6 MB. There was no sign of a leak from making a Skia path per symbol.
+- **Compression.** JSON needed 5-6 times fewer frames than noise. The test JSON is synthetic and repetitive, so real data may compress less.
+- **Loss.** The Pixel captured 84-92% of symbols, and steps show random loss, not phase lock. In a simulation at 88-89% capture, a plain loop takes 7-12.7 s for 50 KB and 4-5.7 minutes for 1 MB, which covers the noise runs. So the time goes on waiting for missed blocks to come round again, which is the case for a fountain code. The last 10% of blocks took 39-63% of each noise run. At 1 MB, 90% had arrived after 94 s, against 255 s for all of them. One loop takes 85 s.
+
 There's still deliberately no default config in this package. v30-M at 10 fps with mask 0 is the best setting measured, and that default belongs in the React Native layer.

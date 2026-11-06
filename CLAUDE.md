@@ -30,34 +30,32 @@ Read `README.md` first. It has the architecture, layers, risks, and roadmap. Thi
 
 ## Where things stand
 
-As of 2026-11-05, the device spike is finished, with results in `docs/qr.md`, section 4. `toss-react-native` has its headless hooks and `TossSymbol`, tested in Node and bundled with Metro, but **not yet run on a phone. Do that next**, then build the default components. The spike in `examples/expo-app` now runs on the hooks, and its README lists the runs to do.
+As of 2026-11-05, `toss-react-native` has its headless hooks and `TossSymbol`, and they've run on both test phones through the spike in `examples/expo-app`. All transfers verified, the sender held 10 fps while drawing live, and memory stayed flat. Results are in `docs/qr.md`, section 4. **Next is the default components.**
 
-Check these on the phones first:
+Carry these into them:
 
-- Whether the sender holds 10 fps. The spike parsed every Skia path up front, and `TossSymbol` parses one per symbol, so that cost is unmeasured. Watch `stats.shownFps` and `stats.skippedSlots`.
-- Memory in a long session. Each symbol makes a new Skia path, which the spike didn't do.
-
-Carry these into the default components:
-
-- Show live progress and ask people to hold steady, using `stalledMs`. A good hand-held session reaches 9-11 KB/s, but a poor one can be several times slower.
+- Show live progress and ask people to hold steady, using `stalledMs`. Most of a long transfer's time goes on the last few blocks, so a stall near the end is normal.
+- Show a brief "preparing" state. Starting 1 MB blocks the screen for 0.7-0.9 s.
+- `shownFps` and `skippedSlots` count time in the background, so an interrupted run looks slower than it was. Fix that before relying on them.
 - `examples/expo-app/metro.config.js` must keep `disableHierarchicalLookup`. Without it, a linked package bundles a second React, because the root install has one too.
 
 After that layer comes a small published file transfer app, as a utility and a proof of concept. It's the layer's first real user, and it replaces the spike in `examples/expo-app`. The plan is Android first, with a cap of about 1 MB.
 
-- **Fountain code:** the decision not to add one assumed JSON, so revisit it for this app. Files compress far less, and 1 MB takes 2-4 minutes on a good run.
+- **Fountain code:** the decision not to add one assumed JSON, so revisit it for this app. 1 MB of noise took 4 min 15 s, with 63% of that on the last 10% of blocks. A rough estimate with a fountain code is 1.6 minutes, but receiver CPU on Hermes is unmeasured. A lower size cap is the alternative. The owner hasn't decided.
 - **Privacy:** there's no encryption, so the app should say that anyone who can see the screen can read the file.
 - **Received files:** they're untrusted. Clean up filenames, enforce size caps, and hand files to the system's save or share sheet instead of opening them.
 - **Publishing:** it needs a real signing key, a privacy policy and a camera permission message. Check Google Play's current testing rules for new personal accounts early.
 
 Not tested yet, in rough order of value:
 
-- Real JSON with compression on. Every spike run used incompressible data.
+- Real app JSON. The hook runs used synthetic JSON, which may compress better. 1 MB of it hasn't been run either.
+- The hooks with the phones swapped, Pixel sending to the S21.
 - Versions 35 and 40, which the spike app offers.
 - Masks other than 0.
 - The Pixel as receiver with a lower camera analysis resolution. It managed about 15 scans/s against the Galaxy S21's 25, and the cause is unknown.
 - 15 fps from the Pixel to the S21.
 
-The test phones are a Galaxy S21 and a Pixel 10 Pro. To rebuild the spike, see `examples/expo-app/README.md`. It needs the Android SDK and JDK 21, and `android/` is generated, so a new machine rebuilds it.
+The test phones are a Galaxy S21 and a Pixel 10 Pro. The S21's USB connection drops in and out, and each reconnect opens the USB settings page over the app, so prefer wireless debugging for long `adb` sessions. To rebuild the spike, see `examples/expo-app/README.md`. It needs the Android SDK and JDK 21, and `android/` is generated, so a new machine rebuilds it.
 
 ## Open (don't silently decide)
 

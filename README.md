@@ -121,7 +121,7 @@ toss/
 
 ## Known risks
 
-- **Throughput is camera- and display-limited, not protocol-limited.** The device spike measured about 9 KB/s hand-held at version 30, level M, 10 fps, plus time to draw the symbols first. See `docs/qr.md`, section 4.
+- **Throughput is camera- and display-limited, not protocol-limited.** Hand-held at version 30, level M, 10 fps, incompressible data moves at 4-9 KB/s, and compressible JSON several times faster. See `docs/qr.md`, section 4.
 - **Do an early device spike** of the camera + display path to find real frame size and rate. It's the one thing unit tests can't cover.
 - Screen-to-camera issues: glare, moire, exposure. Max brightness and keep-awake on the sender help.
 - No back-channel: the sender can't know the receiver finished, so it loops until dismissed.
@@ -139,7 +139,7 @@ toss/
 2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
 3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
 4. Device spike: measure real camera/display throughput, using `examples/expo-app`. Done, see `docs/qr.md`, section 4
-5. `toss-react-native`: hooks, then default components. Hooks written, not yet run on a device
+5. `toss-react-native`: hooks, then default components. Hooks done and run on two phones, default components next
 6. `expo-toss`: config plugin + packaging
 7. Wire into a real app: a small published file transfer app, replacing the spike in `examples/expo-app`. It's both a utility and a proof of concept
 
