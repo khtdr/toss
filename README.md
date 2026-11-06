@@ -2,179 +2,143 @@
 
 # toss
 
-Toss data from one device to another across the air gap. No network, no accounts, no pairing.
+Send data between two phones with a screen and a camera. No network, no accounts, no pairing.
 
-The sender's screen flashes a looping sequence of QR codes. The receiver points a camera at it, watches progress, and gets the data. The same core could later work over other carriers (e.g. modem-like sounds).
-
-## Final form
-
-1. I'm in my app. I tap **Share**. The app does whatever it wants (confirm, pick data, etc.).
-2. My phone starts flashing QR codes rapidly.
-3. My buddy taps **Receive** in his copy of the app and points his camera at my phone.
-4. He sees progress, then "done". We both hit back.
-5. His app now has the data (a theme, a file, a config, anything) and uses it however it likes.
-
-toss doesn't care what the data is. It moves bytes plus a mime type and an app-defined `kind`.
-
-## Layers
-
-Each layer depends only on the ones below it.
-
-```
-4. packaging      expo-toss             Expo config plugin, permissions, one clean import
-3. UI / platform  toss-react-native     camera, drawing, hooks + default components
-2. carrier        toss-qr               frame <-> QR (and later: toss-audio, ...)
-1. protocol       toss-core             bytes <-> frames. Knows nothing about QR.
-```
-
-### 1. `toss-core`: protocol (sans-IO)
-
-Pure state machines. No camera, timers, sockets, or QR. Input in, state out.
-
-```ts
-const enc = new Encoder(bytes, { maxFrameBytes: 700, mime, kind })
-enc.nextFrame()          // -> Uint8Array, loops forever
-
-const dec = new Decoder()
-dec.push(frame)          // -> { progress, done?, payload?, meta? }
-```
-
-- **Configurable, carrier-neutral:** frame size is a parameter. Core emits and consumes raw bytes; text codecs (e.g. base45 for QR) live in the carrier layer.
-- **Header frame:** version, session ID, mime type, `kind`, total size, frame count, payload hash, compression flag.
-- **Data frames:** session ID, index, payload, per-frame CRC.
-- **Robustness:** tolerates duplicates, out-of-order frames, and joining mid-loop. Session ID keeps two senders from mixing.
-- **Pluggable redundancy:** plain looping indexed frames, with a prime-length cycle so a phase-locked camera can't miss frames forever. The format leaves room for a fountain code, which the device spike didn't justify for now. See `docs/protocol.md`, Appendix B.
-- **Untrusted input:** size and frame-count caps enforced before allocating.
-
-### 2. `toss-qr`: carrier
-
-Pure QR logic, with no platform I/O.
-
-- `frameToText` / `textToFrame`: frame bytes <-> QR string (base45 for alphanumeric mode, since scanners return strings)
-- `textToMatrix`: QR string -> matrix for drawing, at a fixed version so the symbol never changes size
-- `maxFrameBytes` / `smallestVersion`: capacity for a given QR version and error-correction level
-
-See `docs/qr.md`.
-
-### 3. `toss-react-native`: platform bindings
-
-The platform-specific I/O lives here: camera, drawing, keep-awake, brightness.
-
-- Headless hooks: `useTossSend(data, opts)` and `useTossReceive()` (state, progress, cancel)
-- Default components: `<TossSender>` and `<TossReceiver>`, built only on the public hooks
-- Apps control their own confirmation and UI; components are a convenience
+The sender's screen flashes a loop of QR codes. The receiver points a camera at it, watches the progress, and gets the bytes. toss is a library for Expo and React Native apps, so the send and receive screens live inside your app and you decide what the data means: a theme, a config, a document, anything.
 
 ```tsx
-// Pass null until the app is ready to send. Keep `data` stable between renders.
-const send = useTossSend(data, { mime: 'application/json', kind: 'theme' })
-send.symbol && <TossSymbol symbol={send.symbol} />
+import { TossReceiver, TossSender } from 'expo-toss'
 
-const receive = useTossReceive({ maxPayloadBytes: 1024 * 1024 })
-<CameraView style={{ flex: 1 }} {...receive.cameraProps} />
-// receive.status, .progress, .stalledMs, then .payload and .meta. Both are untrusted.
+// On one phone
+<TossSender data={bytes} mime="application/json" kind="my-app/theme" onStop={close} />
+
+// On the other
+<TossReceiver onReceive={(payload, meta) => review(payload, meta)} onCancel={close} />
 ```
 
-The components are whole screens. They handle the camera permission, preparing, progress, asking people to hold steady, and errors:
+> **Status:** works on Android, tested on two phones. iOS hasn't been tested. The packages aren't on npm yet, so `npm install` won't work until they are. See [Status](#status).
 
-```tsx
-<TossSender data={data} mime="application/json" kind="theme" onStop={close} />
+## Is it right for your app?
 
-<TossReceiver maxPayloadBytes={1024 * 1024} onReceive={(payload, meta) => review(payload, meta)} onCancel={close} />
-```
+**A good fit:**
 
-Both hooks have `pause()` and `resume()`. A transfer can also outlast the app, with no help from core. The session ID comes from the content, so sending the same data again is the same session. A receiver keeps each frame from `onFrame`, then gives them to `restore` in a later run. A sender saves `stats.position`, then passes it back as `startPosition`.
+- Moving settings, themes, saved work or small documents from one person's app to another's.
+- Places with no shared network, or where you don't want one: offline, on a plane, or across an air gap.
+- Apps that shouldn't need `INTERNET`, accounts or a server for this.
 
-`SendSession` and `ReceiveSession` hold the logic and take the clock as an argument, so tests need no device. The hooks connect them to the platform. Each new symbol goes straight to `TossSymbol`, so the calling screen doesn't re-render at the frame rate.
+**Not a good fit:**
 
-### 4. `expo-toss`: packaging
+- **Secrets, unless you encrypt them yourself.** toss has no encryption. Anyone who can see the screen can read the data.
+- **Trusted input.** Anyone can show a screen, and nothing proves who sent a transfer.
+- **Big files.** It moves kilobytes per second. See the table below.
+- **Anything that needs an answer.** Data flows one way, so the sender can't know when the receiver finished.
 
-Thin by design. It re-exports the layer 3 API and adds a config plugin. An app installs it with the native modules it peer-depends on, which have to be the app's own dependencies for autolinking:
+## How fast is it?
+
+Measured hand-held on real phones, at the default settings. Times vary a lot with the conditions, and each row has only a few runs.
+
+| Payload | Time | Speed |
+|---|---|---|
+| 50 KB JSON | 1.9 s | 26.6 KB/s |
+| 200 KB JSON | 5.7 s | 34.8 KB/s |
+| 166 KB PDF | 30 s | 5.5 KB/s |
+| 50 KB of random bytes | 8-12 s | 4-6 KB/s |
+| 1 MB of random bytes | 4 min 15 s | 4 KB/s |
+
+Compression is why JSON is so much faster, and the test JSON was synthetic, so real JSON may compress less. Data that's already compressed, like most PDFs and photos, moves at about 4-6 KB/s. The full results are in [`docs/qr.md`, section 4](docs/qr.md#4-device-spike-results).
+
+## Quick start
+
+Install `expo-toss` and the native modules it uses. They have to be your app's own dependencies, so that autolinking finds them.
 
 ```sh
 npm install expo-toss
 npx expo install expo-camera expo-brightness expo-keep-awake @shopify/react-native-skia react-native-safe-area-context
 ```
 
+Add the config plugin to `app.json`, then make a new native build. Don't list `expo-camera` here as well.
+
 ```json
-{ "expo": { "plugins": [["expo-toss", { "cameraPermission": "Optional iOS camera prompt" }]] } }
+{ "expo": { "plugins": ["expo-toss"] } }
 ```
 
-```ts
+Add a screen for each side. These two components are whole screens: they handle the camera permission, progress, asking people to hold steady, and errors.
+
+```tsx
+import { useMemo } from 'react'
 import { TossReceiver, TossSender } from 'expo-toss'
+
+function ShareTheme({ theme, onClose }: { theme: Theme; onClose: () => void }) {
+  // Keep the bytes stable between renders. New bytes are a new transfer.
+  const data = useMemo(() => new TextEncoder().encode(JSON.stringify(theme)), [theme])
+  return <TossSender data={data} mime="application/json" kind="my-app/theme" onStop={onClose} />
+}
+
+function ReceiveTheme({ onTheme, onClose }: { onTheme: (theme: Theme) => void; onClose: () => void }) {
+  return (
+    <TossReceiver
+      maxPayloadBytes={1024 * 1024}
+      onReceive={(payload, meta) => {
+        // Everything here came from a stranger's screen, so check it before using it.
+        if (meta.kind !== 'my-app/theme') return
+        const theme = parseTheme(new TextDecoder().decode(payload))
+        if (theme) onTheme(theme)
+      }}
+      onCancel={onClose}
+    />
+  )
+}
 ```
 
-The plugin declares the camera and leaves out what toss doesn't use:
+The sender keeps looping until someone presses Stop, because it can't tell when the receiver has finished.
 
-- No microphone permission on Android, and no microphone text on iOS.
-- No `WRITE_SETTINGS`. Expo adds it for any app with `expo-brightness`, but toss only changes its own window's brightness. An app that calls `setSystemBrightnessAsync` itself can't use this plugin as it stands.
+## What you get
 
-Don't list `expo-camera` in `plugins` as well. It only runs once, so an entry above `expo-toss` replaces these settings and one below it is ignored.
+- **Ready-made screens or headless hooks.** `TossSender` and `TossReceiver` are built only on `useTossSend` and `useTossReceive`, which you can use to build your own UI.
+- **A receiver that can join at any time.** It tolerates missed, repeated and out-of-order frames, and ignores other QR codes in view. A hash checks the finished payload.
+- **Pause and resume**, on both sides, including after the app is killed.
+- **Compression**, used only when it makes the transfer smaller.
+- **Limits you control.** Size and frame-count caps apply before anything is allocated.
+- **Few permissions.** toss only needs the camera, and the plugin removes the microphone and `WRITE_SETTINGS`.
 
-## Possible future cells
+[File Toss](examples/file-toss) is a complete app built on toss, and the best example of it in real use. It sends files between phones, with estimates, history and resuming.
 
-Carriers (qr, audio, ...) times frameworks (react-native, web, ...) gives one adapter per cell. Build only what's needed.
+## Documentation
 
-- `toss-audio`: modem-style data over sound (ggwave is worth studying)
-- `toss-web`: webcam + canvas
+| | |
+|---|---|
+| **[Guide](docs/guide.md)** | Building toss into an app: custom UI, untrusted data, resuming, tuning, permissions, troubleshooting, testing |
+| **[API reference](packages/react-native/README.md)** | Hooks, components, options and states |
+| **[Architecture](docs/architecture.md)** | The four layers, and how a transfer works |
+| **[Protocol spec](docs/protocol.md)** | The frame format, for anyone writing another implementation |
+| **[QR carrier spec](docs/qr.md)** | How frames become QR symbols, and the measurements from real phones |
+| **[Roadmap](docs/roadmap.md)** | What's planned, known risks and open questions |
+| **[Contributing](CONTRIBUTING.md)** | Building and testing this repo |
 
-## `toss-cli`: end-to-end harness
+## Packages
 
-Encodes a file to QR PNG frames and decodes them back, so the whole path runs without a device. It isn't a layer: nothing depends on it.
+Most apps need only `expo-toss`.
 
-```sh
-npm run build
-node packages/cli/dist/bin.js encode theme.json -o frames/ --mime application/json --kind theme
-node packages/cli/dist/bin.js decode frames/ -o theme-copy.json
-```
+| Package | Use it for |
+|---|---|
+| [`expo-toss`](packages/expo) | Expo apps. The config plugin, and everything in `toss-react-native` in one import |
+| [`toss-react-native`](packages/react-native) | The hooks and components, without the config plugin |
+| [`toss-qr`](packages/qr) | Turning frames into QR symbols and back, on any platform |
+| [`toss-core`](packages/core) | The protocol alone, to build a different carrier. It knows nothing about QR |
 
-Each PNG holds one frame, drawn by `toss-qr`. `--frame-bytes` picks the smallest QR version that fits, and `--qr-version` fills a chosen version instead. `--loops` writes more than one cycle, so you can delete images to simulate loss. Scanning PNGs with `jsqr` stays in the CLI, because on a device the camera does that job.
+## Status
 
-## Package layout (monorepo)
+| | |
+|---|---|
+| Android | Works. Tested on a Galaxy S21 and a Pixel 10 Pro |
+| iOS | Not tested. Its scanner is different, so it needs its own measurements |
+| Expo | SDK 58 or later. Only tested in native builds, not Expo Go |
+| React Native without Expo | Needs Expo Modules, for `expo-camera`, `expo-brightness` and `expo-keep-awake` |
+| npm | Not published yet |
+| Largest transfer on real phones | 1 MB. Larger ones should work but haven't been tried |
 
-```
-toss/
-  README.md
-  packages/
-    core/              toss-core
-    cli/               toss-cli
-    qr/                toss-qr
-    react-native/      toss-react-native
-    expo/              expo-toss
-  examples/
-    file-toss/         File Toss, a file transfer app built on all of the above
-  docs/
-    protocol.md        frame format spec
-    qr.md              QR carrier spec
-```
+The wire format is version 1, and the JavaScript API may still change before the first release.
 
-## Known risks
+## Licence
 
-- **Throughput is camera- and display-limited, not protocol-limited.** Hand-held at version 30, level M, 10 fps, incompressible data moves at 4-9 KB/s, and compressible JSON several times faster. See `docs/qr.md`, section 4.
-- **Do an early device spike** of the camera + display path to find real frame size and rate. It's the one thing unit tests can't cover.
-- Screen-to-camera issues: glare, moire, exposure. Max brightness and keep-awake on the sender help.
-- No back-channel: the sender can't know the receiver finished, so it loops until dismissed.
-- Display and camera can phase-lock, so a capture rhythm misses the same frames every loop. The sender's prime-length cycle handles this in simulation, and the device spike saw random-looking loss, not repeated misses.
-
-## Open questions
-
-- Optional encryption (shared passphrase)? Currently out of scope. Anyone who can see the screen can read it. A published file transfer app makes this more pressing.
-- Should File Toss get a fountain code? It now sends real files of up to 64 MiB, and files compress far less than JSON, so this question is live. See `docs/protocol.md`, Appendix B.
-- iOS: everything so far has only been tested on Android.
-
-## Roadmap
-
-The order from here: make the library useful to app developers, with File Toss as the proof of concept, and write the docs and blog posts. Then expand File Toss into a cross-platform tool, and if it works well enough, put it in the app stores.
-
-1. `toss-core`: frame format, encoder/decoder, tests with simulated loss/duplication/reordering
-2. `toss-cli`: round-trip a file through PNG frames, as part of `npm test`
-3. `toss-qr`: base45 codec, capacity tuning, taking over the CLI's QR code
-4. Device spike: measure real camera/display throughput. Done, see `docs/qr.md`, section 4
-5. `toss-react-native`: hooks, then default components. Both run on two phones
-6. `expo-toss`: config plugin + packaging. Built and tested, and File Toss uses it on the phones
-7. Wire into a real app: File Toss, in `examples/file-toss`, replacing the spike. It's both a utility and a proof of concept. Runs on both test phones, not yet published
-8. Publish `toss-core`, `toss-qr`, `toss-react-native` and `expo-toss` to npm. Each needs a real version in place of `0.0.0`, `private` removed, and its own README. `toss-qr` also needs the full MIT text in its vendored `qrcode-generator` file. `toss-cli` can probably stay private. Not started
-9. Desktop builds of File Toss for Mac, Linux and Windows, so files can move between phones and computers. Deno Desktop bundles the TypeScript into a standalone executable, which would likely use `toss-web`. Not started
-
-## Naming
-
-`toss` is taken on npm (an unrelated, abandoned package), so the published names are suffixed: `toss-core`, `toss-qr`, `toss-react-native`, and `expo-toss`. These were all unclaimed when checked, so consider publishing placeholders or using a scope.
+[MIT](LICENSE)

@@ -1,6 +1,6 @@
 # toss: working notes for Claude
 
-Read `README.md` first. It has the architecture, layers, risks, and roadmap. This file records decisions and preferences from the design conversation.
+Read `README.md` first. It's written for developers choosing a library. The layers are in `docs/architecture.md`, the risks, roadmap and open questions in `docs/roadmap.md`, and integration advice in `docs/guide.md`. The API reference is `packages/react-native/README.md`, so keep it in step with the code. This file records decisions and preferences from the design conversation.
 
 ## Project intent
 
@@ -64,7 +64,7 @@ The test phones are a Galaxy S21 and a Pixel 10 Pro. The S21's USB connection dr
 
 ## Open (don't silently decide)
 
-See "Open questions" in the README: encryption and iOS. A fountain code is deferred, as noted above. Present a recommendation and let the owner choose.
+See "Open questions" in `docs/roadmap.md`: encryption and iOS. A fountain code is deferred, as noted above. Present a recommendation and let the owner choose.
 
 ## Build order
 
