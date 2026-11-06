@@ -27,11 +27,15 @@ export interface SendSessionOptions extends SendSettings {
   kind: string;
   /** Compress when that makes the transfer smaller. Defaults to true. */
   compress?: boolean;
+  /** Where in the cycle to start. Pass an earlier `stats().position` to carry on from there. */
+  startPosition?: number;
 }
 
 export interface SendStats {
   /** Complete passes through the cycle. There's no back-channel, so this is all a sender can know. */
   loops: number;
+  /** The place in the cycle, which `startPosition` can return to later. */
+  position: number;
   /** Symbols shown per second, leaving out paused time. */
   shownFps: number;
   /** Time slots that passed with no new symbol, because the device fell behind while running. */
@@ -50,7 +54,8 @@ export class SendSession implements SymbolSource {
   private readonly options: SendSessionOptions;
   private readonly listeners = new Set<() => void>();
 
-  private position = 0;
+  private readonly startPosition: number;
+  private position: number;
   private current: SymbolFrame;
   private next: SymbolFrame | undefined;
   private startedAt: number | undefined;
@@ -64,10 +69,15 @@ export class SendSession implements SymbolSource {
     if (!(Number.isFinite(options.fps) && options.fps > 0)) {
       throw new RangeError(`${String(options.fps)} is not a frame rate`);
     }
-    const { mime, kind, compress = true } = options;
+    const { mime, kind, compress = true, startPosition = 0 } = options;
+    if (!(Number.isSafeInteger(startPosition) && startPosition >= 0)) {
+      throw new RangeError(`${String(startPosition)} is not a position`);
+    }
     this.options = options;
     this.encoder = new Encoder(payload, { maxFrameBytes: maxFrameBytes(options), mime, kind, compress });
-    this.current = this.draw(0);
+    this.startPosition = startPosition;
+    this.position = startPosition;
+    this.current = this.draw(startPosition);
   }
 
   get frameCount(): number {
@@ -126,7 +136,8 @@ export class SendSession implements SymbolSource {
     const end = this.pausedAt ?? now;
     const seconds = this.startedAt === undefined ? 0 : (end - this.startedAt) / 1000;
     return {
-      loops: Math.floor(this.position / this.encoder.cycleLength),
+      loops: Math.floor((this.position - this.startPosition) / this.encoder.cycleLength),
+      position: this.position % this.encoder.cycleLength,
       shownFps: seconds > 0 ? this.shown / seconds : 0,
       skippedSlots: this.skipped,
     };

@@ -200,4 +200,142 @@ describe('ReceiveSession', () => {
     expect(receiver.getSnapshot()).toMatchObject({ status: 'done', rejectedScans: 0 });
     expect(receiver.getSnapshot().payload).toEqual(payload);
   });
+
+  describe('pause', () => {
+    it('ignores scans while paused and picks up where it left off', () => {
+      const payload = noise(1500);
+      const frames = texts(payload);
+      const session = new ReceiveSession({}, 0);
+      session.scan(frames[0]!, 0);
+      session.scan(frames[1]!, 1);
+      const { received } = session.getSnapshot().progress;
+
+      session.pause();
+      expect(session.getSnapshot().status).toBe('paused');
+      session.scan(frames[2]!, 2);
+      expect(session.getSnapshot().progress.received).toBe(received);
+
+      session.resume(3);
+      expect(session.getSnapshot().status).toBe('receiving');
+      expect(feed(session, frames).payload).toEqual(payload);
+    });
+
+    it('goes back to searching if nothing had arrived', () => {
+      const session = new ReceiveSession({}, 0);
+      session.pause();
+      session.resume(1);
+      expect(session.getSnapshot().status).toBe('searching');
+    });
+
+    it('takes the symbol it was showing when paused again', () => {
+      const frames = texts(noise(1500));
+      const session = new ReceiveSession({}, 0);
+      session.scan(frames[0]!, 0);
+      session.pause();
+      session.resume(1);
+      session.scan(frames[1]!, 2);
+      session.pause();
+      session.resume(3);
+      // A skipped repeat is harmless, but it must still count as a scan of the new sitting.
+      session.scan(frames[1]!, 4);
+      session.refresh(1004);
+      expect(session.getSnapshot().scansPerSecond).toBeGreaterThan(0);
+    });
+
+    it("doesn't count a long pause as a stall", () => {
+      const frames = texts(noise(1500));
+      const session = new ReceiveSession({}, 0);
+      session.scan(frames[0]!, 0);
+      session.pause();
+      session.refresh(60_000);
+      session.resume(60_000);
+      session.refresh(60_500);
+      expect(session.getSnapshot().stalledMs).toBe(500);
+    });
+
+    it('does nothing once finished', () => {
+      const session = new ReceiveSession({}, 0);
+      feed(session, texts(noise(100)));
+      session.pause();
+      expect(session.getSnapshot().status).toBe('done');
+    });
+  });
+
+  describe('keeping frames', () => {
+    it('hands over each useful frame once, and not repeats', () => {
+      const payload = noise(1500);
+      const kept: Uint8Array[] = [];
+      const frames = texts(payload);
+      const session = new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0);
+      feed(session, [...frames, ...frames]);
+      // Every block, plus the first header. Later headers add nothing.
+      expect(kept).toHaveLength(new Encoder(payload, encoderOptions).frameCount + 1);
+    });
+
+    it('finishes a transfer split across two runs', () => {
+      const payload = noise(1500);
+      const frames = texts(payload);
+      const kept: Uint8Array[] = [];
+      const first = new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0);
+      feed(first, frames.slice(0, 6));
+      const { received } = first.getSnapshot().progress;
+      expect(received).toBeGreaterThan(0);
+
+      const second = new ReceiveSession({}, 0);
+      second.restore(kept, 0);
+      expect(second.getSnapshot()).toMatchObject({ status: 'receiving', progress: { received } });
+      expect(feed(second, frames).payload).toEqual(payload);
+    });
+
+    it('leaves out blocks seen before the header, as they could be from any sender', () => {
+      const frames = texts(noise(1500));
+      const kept: Uint8Array[] = [];
+      const session = new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0);
+      feed(session, frames.slice(1, 3));
+      expect(kept).toEqual([]);
+      expect(session.getSnapshot().progress.received).toBe(2);
+    });
+
+    it("doesn't hand restored frames back, and notices a transfer they complete", () => {
+      const payload = noise(1500);
+      const kept: Uint8Array[] = [];
+      feed(new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0), texts(payload));
+
+      const again: Uint8Array[] = [];
+      const session = new ReceiveSession({ onFrame: (frame) => again.push(frame) }, 0);
+      session.restore(kept, 0);
+      expect(session.getSnapshot()).toMatchObject({ status: 'done', payload });
+      expect(again).toEqual([]);
+    });
+
+    it('skips damaged frames, as a crash can cut a log short', () => {
+      const payload = noise(1500);
+      const kept: Uint8Array[] = [];
+      const frames = texts(payload);
+      feed(new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0), frames.slice(0, 6));
+      const cut = kept.at(-1)!.subarray(0, 20);
+
+      const session = new ReceiveSession({}, 0);
+      session.restore([...kept.slice(0, -1), cut, new Uint8Array(0)], 0);
+      expect(session.getSnapshot().status).toBe('receiving');
+      expect(feed(session, frames).payload).toEqual(payload);
+    });
+
+    it('stays paused while frames are restored', () => {
+      const kept: Uint8Array[] = [];
+      feed(new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0), texts(noise(1500)).slice(0, 6));
+      const session = new ReceiveSession({}, 0);
+      session.pause();
+      session.restore(kept, 0);
+      expect(session.getSnapshot().status).toBe('paused');
+    });
+
+    it('still applies its caps to restored frames', () => {
+      const kept: Uint8Array[] = [];
+      feed(new ReceiveSession({ onFrame: (frame) => kept.push(frame) }, 0), texts(noise(1500)).slice(0, 6));
+      const session = new ReceiveSession({ maxPayloadBytes: 100 }, 0);
+      session.restore(kept, 0);
+      expect(session.getSnapshot()).toMatchObject({ status: 'failed', error: 'payload-too-large' });
+    });
+  });
 });

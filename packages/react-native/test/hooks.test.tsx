@@ -253,6 +253,90 @@ describe('useTossSend', () => {
     expect(seen.current.status).toBe('sending');
   });
 
+  describe('pause', () => {
+    const shownAfter = (seen: { current: TossSend }, ms: number) => {
+      const symbol = seen.current.symbol!;
+      const before = symbol.getSymbol();
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+      return symbol.getSymbol() !== before;
+    };
+
+    it('holds the symbol and lets the screen sleep, then carries on', () => {
+      const { seen } = renderSend(noise(5000));
+      expect(shownAfter(seen, 300)).toBe(true);
+
+      act(() => seen.current.pause());
+      expect(seen.current.status).toBe('paused');
+      expect(seen.current.symbol).not.toBeNull();
+      expect(screen.deactivateKeepAwake).toHaveBeenCalled();
+      expect(screen.restoreSystemBrightnessAsync).toHaveBeenCalled();
+      expect(shownAfter(seen, 5000)).toBe(false);
+
+      act(() => seen.current.resume());
+      expect(seen.current.status).toBe('sending');
+      expect(shownAfter(seen, 300)).toBe(true);
+    });
+
+    it('stays paused when the app comes back from the background', () => {
+      const { seen } = renderSend(noise(5000));
+      act(() => seen.current.pause());
+      act(() => {
+        for (const listener of screen.app.listeners) listener('background');
+      });
+      act(() => {
+        for (const listener of screen.app.listeners) listener('active');
+      });
+      expect(shownAfter(seen, 1000)).toBe(false);
+    });
+
+    it("stays held by the background after a resume there", () => {
+      const { seen } = renderSend(noise(5000));
+      act(() => seen.current.pause());
+      act(() => {
+        for (const listener of screen.app.listeners) listener('background');
+      });
+      act(() => seen.current.resume());
+      expect(shownAfter(seen, 1000)).toBe(false);
+    });
+
+    it('applies a pause made while preparing', () => {
+      const { seen } = renderSend(noise(5000), options, { prepare: false });
+      act(() => seen.current.pause());
+      finishPreparing();
+      expect(seen.current.status).toBe('paused');
+      expect(shownAfter(seen, 1000)).toBe(false);
+    });
+
+    it('is forgotten by a cancel', () => {
+      const { seen } = renderSend(noise(5000));
+      act(() => seen.current.pause());
+      act(() => seen.current.cancel());
+      act(() => seen.current.restart());
+      finishPreparing();
+      expect(seen.current.status).toBe('sending');
+    });
+
+    it('reports its starting position until the first update', () => {
+      const { seen } = renderSend(noise(5000), { ...options, startPosition: 7 });
+      expect(seen.current.stats.position).toBe(7);
+    });
+
+    it('reports the position, and can start from one', () => {
+      const data = noise(5000);
+      const { seen } = renderSend(data);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      const { position } = seen.current.stats;
+      expect(position).toBeGreaterThan(0);
+
+      const next = renderSend(data, { ...options, startPosition: position });
+      expect(next.seen.current.symbol!.getSymbol()).toEqual(seen.current.symbol!.getSymbol());
+    });
+  });
+
   it('sends new data after a cancel', () => {
     const { seen, update } = renderSend(noise(3000, 1));
     act(() => seen.current.cancel());
@@ -377,6 +461,36 @@ describe('useTossReceive', () => {
     expect(seen.current.status).toBe('searching');
     expect(seen.current.payload).toBeUndefined();
     expect(seen.current.cameraProps.onBarcodeScanned).toBeDefined();
+  });
+
+  it('pauses, letting the screen sleep and ignoring the camera, then resumes', () => {
+    const { seen } = renderReceive();
+    act(() => seen.current.pause());
+    expect(seen.current.status).toBe('paused');
+    expect(seen.current.cameraProps.onBarcodeScanned).toBeUndefined();
+    expect(screen.deactivateKeepAwake).toHaveBeenCalled();
+
+    act(() => seen.current.resume());
+    expect(seen.current.status).toBe('searching');
+    expect(seen.current.cameraProps.onBarcodeScanned).toBeDefined();
+  });
+
+  it('hands over frames to keep, and takes them back in a new run', () => {
+    const payload = noise(1500);
+    const encoder = new Encoder(payload, { maxFrameBytes: 200, mime: 'a/b', kind: 'c', compress: false });
+    const kept: Uint8Array[] = [];
+    const { seen } = renderReceive({ onFrame: (frame: Uint8Array) => kept.push(frame) });
+    for (let t = 0; t < 4; t++) {
+      const text = frameToText(encoder.frameAt(t));
+      act(() => seen.current.cameraProps.onBarcodeScanned!({ data: text, raw: text } as BarcodeScanningResult));
+    }
+    const { received } = seen.current.progress;
+    expect(received).toBeGreaterThan(0);
+
+    const next = renderReceive();
+    act(() => next.seen.current.restore(kept));
+    expect(next.seen.current.status).toBe('receiving');
+    expect(next.seen.current.progress.received).toBe(received);
   });
 
   it('stops on cancel', () => {

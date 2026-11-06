@@ -17,6 +17,12 @@ export interface TossReceive extends ReceiveSnapshot {
   cameraProps: Pick<CameraViewProps, 'facing' | 'barcodeScannerSettings' | 'onBarcodeScanned'>;
   /** Drops the transfer and stops scanning. */
   cancel(): void;
+  /** Stops scanning and keeps what's arrived. Leave the `CameraView` out while `paused`, to save power. */
+  pause(): void;
+  /** Scans again. */
+  resume(): void;
+  /** Adds frames kept from an earlier run, which `options.onFrame` supplied. */
+  restore(frames: Iterable<Uint8Array>): void;
   /** Forgets everything and scans for a new transfer. */
   reset(): void;
 }
@@ -69,6 +75,12 @@ export function useTossReceive(options: ReceiveOptions = {}): TossReceive {
 
   const cancel = useCallback(() => session.cancel(), [session]);
   const reset = useCallback(() => session.reset(performance.now()), [session]);
+  const pause = useCallback(() => session.pause(), [session]);
+  const resume = useCallback(() => session.resume(performance.now()), [session]);
+  const restore = useCallback(
+    (frames: Iterable<Uint8Array>) => session.restore(frames, performance.now()),
+    [session],
+  );
 
-  return { ...snapshot, permission, requestPermission, cameraProps, cancel, reset };
+  return { ...snapshot, permission, requestPermission, cameraProps, cancel, reset, pause, resume, restore };
 }

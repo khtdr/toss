@@ -165,4 +165,41 @@ describe('SendSession', () => {
   it('rejects a mime type the protocol cannot carry', () => {
     expect(() => new SendSession(noise(10), { ...options, mime: 'café' })).toThrow(RangeError);
   });
+
+  describe('startPosition', () => {
+    const settings = { ...DEFAULT_SEND_SETTINGS, version: 10, mime: 'application/json', kind: 'test', compress: false };
+
+    it('shows the same symbol the first session had at that position', () => {
+      const payload = noise(6000);
+      const first = new SendSession(payload, settings);
+      for (let t = 0; t <= 5; t++) first.advance(t * 100);
+      const { position } = first.stats(500);
+      expect(position).toBe(5);
+
+      const second = new SendSession(payload, { ...settings, startPosition: position });
+      expect(second.getSymbol()).toEqual(first.getSymbol());
+    });
+
+    it('reports a position inside the cycle, and counts loops from where it started', () => {
+      const session = new SendSession(noise(6000), { ...settings, startPosition: 3 });
+      const cycle = session.cycleLength;
+      session.advance(0);
+      for (let t = 1; t <= cycle; t++) session.advance(t * 100);
+      const stats = session.stats(cycle * 100);
+      expect(stats.position).toBe(3);
+      expect(stats.loops).toBe(1);
+    });
+
+    it('wraps a position past the end of the cycle', () => {
+      const first = new SendSession(noise(6000), settings);
+      const wrapped = new SendSession(noise(6000), { ...settings, startPosition: first.cycleLength + 1 });
+      first.advance(0);
+      first.advance(100);
+      expect(wrapped.getSymbol()).toEqual(first.getSymbol());
+    });
+
+    it.each([-1, 1.5, Number.NaN])('rejects %s', (startPosition) => {
+      expect(() => new SendSession(noise(100), { ...settings, startPosition })).toThrow(RangeError);
+    });
+  });
 });
