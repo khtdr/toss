@@ -37,7 +37,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "npm run build -w toss-core -w toss-qr && tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
-    "test": "npm run build -w toss-core -w toss-qr && vitest run"
+    "test": "npm run build -w toss-core -w toss-qr && vitest run",
+    "prepublishOnly": "npm run build -w toss-core -w toss-qr && rm -rf dist && npm run build"
   },
   "dependencies": {
     "toss-core": "^0.1.0",

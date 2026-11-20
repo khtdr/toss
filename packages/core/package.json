@@ -36,7 +36,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "prepublishOnly": "rm -rf dist && npm run build"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",

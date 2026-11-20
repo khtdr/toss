@@ -40,7 +40,8 @@
   "scripts": {
     "build": "npm run build -w toss-core && npm run build -w toss-qr && npm run build -w toss-react-native && tsc -p tsconfig.build.json",
     "typecheck": "npm run build && tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "rm -rf dist && npm run build"
   },
   "dependencies": {
     "toss-react-native": "^0.1.0"
