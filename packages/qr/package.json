@@ -1,9 +1,24 @@
 {
   "name": "toss-qr",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "license": "MIT",
   "description": "QR carrier for toss: frame bytes to scannable text, text to module matrix, and capacity tuning.",
+  "keywords": [
+    "qr-code",
+    "base45",
+    "air-gap",
+    "offline",
+    "data-transfer"
+  ],
+  "homepage": "https://github.com/khtdr/toss/tree/main/packages/qr#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khtdr/toss.git",
+    "directory": "packages/qr"
+  },
+  "bugs": {
+    "url": "https://github.com/khtdr/toss/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -24,6 +39,6 @@
   },
   "devDependencies": {
     "jsqr": "^1.4.0",
-    "toss-core": "*"
+    "toss-core": "^0.1.0"
   }
 }

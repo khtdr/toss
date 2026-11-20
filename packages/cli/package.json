@@ -19,8 +19,8 @@
   "dependencies": {
     "jsqr": "^1.4.0",
     "pngjs": "^7.0.0",
-    "toss-core": "*",
-    "toss-qr": "*"
+    "toss-core": "^0.1.0",
+    "toss-qr": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

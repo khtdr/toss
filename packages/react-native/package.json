@@ -1,9 +1,26 @@
 {
   "name": "toss-react-native",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "license": "MIT",
   "description": "React Native bindings for toss: headless send and receive hooks and default components, using expo-camera and Skia.",
+  "keywords": [
+    "react-native",
+    "qr-code",
+    "camera",
+    "air-gap",
+    "offline",
+    "data-transfer",
+    "skia"
+  ],
+  "homepage": "https://github.com/khtdr/toss/tree/main/packages/react-native#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khtdr/toss.git",
+    "directory": "packages/react-native"
+  },
+  "bugs": {
+    "url": "https://github.com/khtdr/toss/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -23,8 +40,8 @@
     "test": "npm run build -w toss-core -w toss-qr && vitest run"
   },
   "dependencies": {
-    "toss-core": "*",
-    "toss-qr": "*"
+    "toss-core": "^0.1.0",
+    "toss-qr": "^0.1.0"
   },
   "peerDependencies": {
     "@shopify/react-native-skia": ">=2.14.0",

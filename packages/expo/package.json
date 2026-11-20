@@ -1,9 +1,26 @@
 {
   "name": "expo-toss",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "license": "MIT",
   "description": "Expo packaging for toss: a config plugin for permissions, and the toss-react-native API in one import.",
+  "keywords": [
+    "expo",
+    "expo-config-plugin",
+    "react-native",
+    "qr-code",
+    "air-gap",
+    "offline",
+    "data-transfer"
+  ],
+  "homepage": "https://github.com/khtdr/toss/tree/main/packages/expo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khtdr/toss.git",
+    "directory": "packages/expo"
+  },
+  "bugs": {
+    "url": "https://github.com/khtdr/toss/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -26,7 +43,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "toss-react-native": "*"
+    "toss-react-native": "^0.1.0"
   },
   "peerDependencies": {
     "@shopify/react-native-skia": ">=2.14.0",
