@@ -1,6 +1,6 @@
 {
   "name": "expo-toss",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "description": "Expo packaging for toss: a config plugin for permissions, and the toss-react-native API in one import.",
   "keywords": [

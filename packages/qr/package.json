@@ -1,6 +1,6 @@
 {
   "name": "toss-qr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "description": "QR carrier for toss: frame bytes to scannable text, text to module matrix, and capacity tuning.",
   "keywords": [

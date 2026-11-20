@@ -134,7 +134,7 @@ Most apps need only `expo-toss`.
 | iOS | Not tested. Its scanner is different, so it needs its own measurements |
 | Expo | SDK 58 or later. Only tested in native builds, not Expo Go |
 | React Native without Expo | Needs Expo Modules, for `expo-camera`, `expo-brightness` and `expo-keep-awake` |
-| npm | 0.1.0 |
+| npm | Published |
 | Largest transfer on real phones | 1 MB. Larger ones should work but haven't been tried |
 
 The wire format is version 1. The JavaScript API is at 0.x, so it may still change between minor versions.
