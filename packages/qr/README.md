@@ -1,10 +1,10 @@
 # toss-qr
 
+[npm](https://www.npmjs.com/package/toss-qr)
+
 The QR carrier for [toss](../../README.md): it turns [`toss-core`](../core) frames into QR symbols, and scanner text back into frames. It's pure logic, with no platform I/O, so it runs anywhere.
 
 Use this to bring toss to a platform other than React Native. For an app, use [`expo-toss`](../expo).
-
-> Not on npm yet.
 
 ```ts
 import { Decoder, Encoder } from 'toss-core'

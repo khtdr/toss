@@ -16,7 +16,7 @@ import { TossReceiver, TossSender } from 'expo-toss'
 <TossReceiver onReceive={(payload, meta) => review(payload, meta)} onCancel={close} />
 ```
 
-> **Status:** works on Android, tested on two phones. iOS hasn't been tested. The packages aren't on npm yet, so `npm install` won't work until they are. See [Status](#status).
+> **Status:** works on Android, tested on two phones. iOS hasn't been tested. See [Status](#status).
 
 ## Is it right for your app?
 
@@ -119,12 +119,12 @@ The sender keeps looping until someone presses Stop, because it can't tell when 
 
 Most apps need only `expo-toss`.
 
-| Package | Use it for |
-|---|---|
-| [`expo-toss`](packages/expo) | Expo apps. The config plugin, and everything in `toss-react-native` in one import |
-| [`toss-react-native`](packages/react-native) | The hooks and components, without the config plugin |
-| [`toss-qr`](packages/qr) | Turning frames into QR symbols and back, on any platform |
-| [`toss-core`](packages/core) | The protocol alone, to build a different carrier. It knows nothing about QR |
+| Package | npm | Use it for |
+|---|---|---|
+| [`expo-toss`](packages/expo) | [expo-toss](https://www.npmjs.com/package/expo-toss) | Expo apps. The config plugin, and everything in `toss-react-native` in one import |
+| [`toss-react-native`](packages/react-native) | [toss-react-native](https://www.npmjs.com/package/toss-react-native) | The hooks and components, without the config plugin |
+| [`toss-qr`](packages/qr) | [toss-qr](https://www.npmjs.com/package/toss-qr) | Turning frames into QR symbols and back, on any platform |
+| [`toss-core`](packages/core) | [toss-core](https://www.npmjs.com/package/toss-core) | The protocol alone, to build a different carrier. It knows nothing about QR |
 
 ## Status
 
@@ -134,10 +134,10 @@ Most apps need only `expo-toss`.
 | iOS | Not tested. Its scanner is different, so it needs its own measurements |
 | Expo | SDK 58 or later. Only tested in native builds, not Expo Go |
 | React Native without Expo | Needs Expo Modules, for `expo-camera`, `expo-brightness` and `expo-keep-awake` |
-| npm | Not published yet |
+| npm | 0.1.0 |
 | Largest transfer on real phones | 1 MB. Larger ones should work but haven't been tried |
 
-The wire format is version 1, and the JavaScript API may still change before the first release.
+The wire format is version 1. The JavaScript API is at 0.x, so it may still change between minor versions.
 
 ## Licence
 

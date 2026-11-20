@@ -1,8 +1,10 @@
 # toss-react-native
 
+[npm](https://www.npmjs.com/package/toss-react-native)
+
 Hooks and components for sending data between two phones with a screen and a camera. For an Expo app, use [`expo-toss`](../expo), which has this whole API and sets up permissions. The [guide](../../docs/guide.md) shows how the pieces fit together.
 
-> Not on npm yet. Android works, and iOS hasn't been tested.
+> Android works, and iOS hasn't been tested.
 
 ## Install
 

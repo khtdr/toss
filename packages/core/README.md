@@ -1,10 +1,10 @@
 # toss-core
 
+[npm](https://www.npmjs.com/package/toss-core)
+
 The protocol behind [toss](../../README.md): it turns bytes into a looping sequence of frames, and frames back into bytes. It's sans-IO, so it has no camera, timers, sockets or QR, and it runs anywhere.
 
 Use this to carry toss over something new. For QR, add [`toss-qr`](../qr). For an app, use [`expo-toss`](../expo).
-
-> Not on npm yet.
 
 ```ts
 import { Decoder, Encoder } from 'toss-core'

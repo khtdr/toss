@@ -9,7 +9,7 @@ The order from here: make the library useful to app developers, with File Toss a
 5. `toss-react-native`: hooks, then default components. Both run on two phones
 6. `expo-toss`: config plugin + packaging. Built and tested, and File Toss uses it on the phones
 7. Wire into a real app: File Toss, in `examples/file-toss`, replacing the spike. It's both a utility and a proof of concept. Runs on both test phones, not yet published
-8. Publish `toss-core`, `toss-qr`, `toss-react-native` and `expo-toss` to npm. Prepared at `0.1.0`: `private` removed, internal dependencies pinned to `^0.1.0`, repository metadata added, and the full MIT text in `toss-qr`'s vendored `qrcode-generator` file. `toss-cli` stays private. Before publishing, the GitHub repo has to be public, since the packages link to it. Not yet published
+8. Publish `toss-core`, `toss-qr`, `toss-react-native` and `expo-toss` to npm. Prepared at `0.1.0`: `private` removed, internal dependencies pinned to `^0.1.0`, repository metadata added, and the full MIT text in `toss-qr`'s vendored `qrcode-generator` file. `toss-cli` stays private. Published at 0.1.0
 9. Desktop builds of File Toss for Mac, Linux and Windows, so files can move between phones and computers. Deno Desktop bundles the TypeScript into a standalone executable, which would likely use `toss-web`. Not started
 
 ## File Toss as a universal receiver
